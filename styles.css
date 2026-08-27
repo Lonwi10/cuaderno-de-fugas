@@ -256,3 +256,8 @@ dialog form{display:flex; flex-direction:column; max-height:calc(100vh - 36px)}
 .reparto.hint{font-weight:400; color:var(--ink3)}
 .lbl .opt{font-style:normal; font-weight:400; text-transform:none; letter-spacing:0; color:var(--ink3)}
 .count{margin-top:-8px}
+
+/* cualquier icono dentro de un botón lleva tamaño: si no, el svg se queda sin
+   dimensiones y no se ve (le pasó al lápiz de editar) */
+.btn svg{width:15px; height:15px; flex:none}
+.card .acts .txt-btn{font-size:12.5px}

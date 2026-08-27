@@ -80,7 +80,7 @@
     key: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.9 2a7.1 7.1 0 0 0-6.6 9.7L2 18v4h4l.9-.9V19h2.1v-2.1h2.1l1.2-1.2A7.1 7.1 0 1 0 14.9 2Zm2.4 6.6a1.9 1.9 0 1 1 0-3.8 1.9 1.9 0 0 1 0 3.8Z"/></svg>',
     search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4.3-4.3"/></svg>',
     link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 10.5 13.5"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>',
-    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m14.5 5.5 4 4"/></svg>',
+    edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m14.5 5.5 4 4"/></svg>',
     plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" class="i15"><path d="M12 5v14M5 12h14"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true" class="i15"><path d="m4 12.5 5 5L20 6.5"/></svg>',
     sync: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><path d="M20 11a8 8 0 0 0-14.3-3.7M4 13a8 8 0 0 0 14.3 3.7"/><path d="M4 4v4h4M20 20v-4h-4"/></svg>',
@@ -165,7 +165,14 @@
     box.title = s.msg || (s.lastSync ? 'Última sincronización: ' + new Date(s.lastSync).toLocaleTimeString('es-ES') : '');
     box.innerHTML = '<span class="dot"></span>' + esc(m[1]);
     var inst = document.getElementById('installbtn');
-    if (inst) inst.hidden = !installEvent;
+    if (inst) inst.hidden = !puedeInstalarse();
+  }
+
+  /* En Chrome/Android hay evento de instalación; en iPhone no, así que ahí el
+     botón solo explica el camino. Si ya está instalada, no se ofrece. */
+  function puedeInstalarse() {
+    if (yaInstalada()) return false;
+    return !!installEvent || esApple();
   }
 
   /* ---------- pintado ---------- */
@@ -350,7 +357,8 @@
         (url ? '<a class="iconlink" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="' + esc(host(url)) + '">' + ICO.link + '</a>' : '') +
         '<div class="acts">' +
           (isWish ? '<button class="btn ghost" data-act="didit" data-id="' + r.id + '" title="La hemos jugado">' + ICO.check + '</button>' : '') +
-          '<button class="btn ghost" data-act="edit" data-id="' + r.id + '" title="Editar">' + ICO.edit + '</button>' +
+          '<button class="btn ghost" data-act="edit" data-id="' + r.id + '" title="Editar">' + ICO.edit +
+          (isWish ? '' : '<span class="txt-btn">Editar</span>') + '</button>' +
         '</div>' +
       '</div>' +
     '</article>';
@@ -631,10 +639,15 @@
       return;
     }
     if (act === 'install') {
-      if (!installEvent) return;
-      installEvent.prompt();
-      installEvent = null;
-      paintStatus();
+      if (installEvent) {
+        installEvent.prompt();
+        installEvent = null;
+        paintStatus();
+      } else if (esApple()) {
+        toast('En iPhone: pulsa Compartir (el cuadrado con la flecha) y elige “Añadir a pantalla de inicio”.');
+      } else {
+        toast('Tu navegador no ofrece instalarla. Prueba con Chrome, o guarda el enlace en favoritos.');
+      }
       return;
     }
 
