@@ -184,8 +184,10 @@ fs.writeFileSync(OUT, JSON.stringify({
 
 console.log('catálogo: ' + cat.rooms.length + ' salas');
 console.log('ya las teníais (se dejan fuera): ' + fuera.length);
-fuera.forEach(f => console.log('   - ' + f.cat + '  [' + f.empresa + ']  ↔  vuestra "' + f.mio +
-  '" (' + (f.estado === 'wish' ? 'sin jugar' : 'jugada') + ', ' + f.motivo + ')'));
+fuera.forEach(f => console.log(f.motivo === 'a mano'
+  ? '   - ' + f.cat + '  [' + f.empresa + ']  ↔  ' + f.mio + '  (excluida a mano)'
+  : '   - ' + f.cat + '  [' + f.empresa + ']  ↔  vuestra "' + f.mio + '" (' +
+    (f.estado === 'wish' ? 'sin jugar' : 'jugada') + ', ' + f.motivo + ')'));
 console.log('entran como sin jugar: ' + dentro.length + ' → ' + OUT);
 
 if (dudas.length) {
