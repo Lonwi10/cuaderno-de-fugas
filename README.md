@@ -111,6 +111,10 @@ guardan en el móvil y se suben a la hoja en cuanto vuelve la conexión.
   Con buscador, filtro por ciudad y orden por nombre/ciudad/empresa. El botón ✓ abre la
   ficha para apuntar día, precio y quién fue.
 - **La cuadrilla**: nombres editables y, por cada uno, salas, % de fugas y gasto acumulado.
+
+Cualquier sala jugada se edita con el lápiz de su tarjeta. Si se marcó por error, dentro de la
+ficha hay **Devolver a no jugadas**: la saca de jugadas y limpia día, precio, personas,
+asistentes y resultado (el nombre y las notas se quedan). Pide dos toques para confirmar.
 - **Ajustes**: conexión con la hoja, sincronizar ahora, copia de seguridad (exportar/importar
   JSON) e instalación.
 

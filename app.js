@@ -86,7 +86,8 @@
     sync: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><path d="M20 11a8 8 0 0 0-14.3-3.7M4 13a8 8 0 0 0 14.3 3.7"/><path d="M4 4v4h4M20 20v-4h-4"/></svg>',
     down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><path d="M12 4v11m0 0 4-4m-4 4-4-4"/><path d="M4 19h16"/></svg>',
     up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><path d="M12 19V8m0 0 4 4m-4-4-4 4"/><path d="M4 4h16"/></svg>',
-    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>'
+    phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><path d="M9 14 4 9l5-5"/><path d="M4 9h9a7 7 0 0 1 0 14H7"/></svg>'
   };
   /* Línea viva bajo el precio: cómo queda el reparto con lo que hay escrito. */
   function reparto(r) {
@@ -550,6 +551,7 @@
       '</div>' +
       '<div class="df">' +
         '<button type="submit" class="btn primary">' + ICO.check + (r.id ? 'Guardar cambios' : 'Añadir al cuaderno') + '</button>' +
+        (r.id && !isWish ? '<button type="button" class="btn" data-act="unplay" data-id="' + r.id + '">' + ICO.back + 'Devolver a no jugadas</button>' : '') +
         (r.id ? '<button type="button" class="btn danger" data-act="del" data-id="' + r.id + '">Borrar sala</button>' : '') +
         '<span class="spacer"></span>' +
         '<span class="hint">' + (Store.connected ? 'Se sube a la hoja del grupo.' : 'Se guarda en este dispositivo.') + '</span>' +
@@ -696,6 +698,28 @@
       var nv = +t.getAttribute('data-v');
       draft.rating = (num(draft.rating) === nv) ? 0 : nv;
       renderForm();
+      return;
+    }
+    /* Nos hemos colado: la sala vuelve a no jugadas y se limpia lo del día
+       (fecha, precio, quién fue y resultado). El nombre y las notas se quedan. */
+    if (act === 'unplay') {
+      if (!armed(t, 'Pulsa otra vez: se quitan día, precio y resultado')) return;
+      var vuelve = Store.room(id);
+      if (!vuelve) return;
+      vuelve.status = 'wish';
+      vuelve.date = '';
+      vuelve.escaped = null;
+      vuelve.timeLeft = '';
+      vuelve.price = '';
+      vuelve.people = '';
+      vuelve.who = [];
+      Store.commit([vuelve]);
+      dlg.close();
+      draft = null;
+      ui.tab = 'wish';
+      saveUi();
+      render();
+      toast('“' + (vuelve.name || 'Sala') + '” vuelve a no jugadas.');
       return;
     }
     if (act === 'del') {
