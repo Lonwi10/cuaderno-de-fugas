@@ -1,8 +1,8 @@
 # Cuaderno de Fugas
 
-Registro de los escape rooms del grupo: salas jugadas, **precio** (total del grupo o por
-persona), **web**, quién fue, si escapamos, nota y lista de pendientes. Además saca las
-cuentas: gasto de cada uno, porcentaje de fugas y nota media.
+Registro de los escape rooms del grupo: las **jugadas** (con día, precio, quién fue, si
+escapamos y nota) y las **no jugadas**, que se pueden cargar de golpe con el catálogo de
+una provincia entera. Además saca las cuentas: gasto de cada uno, porcentaje de fugas y nota media.
 
 Es una web estática (sin servidor, sin npm, sin build) pensada para **GitHub Pages**, y los
 datos viven en **una hoja de cálculo de Google Drive**, así que los cuatro veis y editáis la
@@ -28,7 +28,7 @@ por qué estar publicados.
 
 Para cargarlo: abre la web en el ordenador donde tienes el fichero, pulsa **Importar copia**
 (en la pantalla de alta, o en *Ajustes*) y elige `datos-iniciales.json`. Entran los cuatro
-nombres (JI, Josemi, Dani y Victor) y las 37 salas — 31 jugadas y 6 pendientes. Hazlo **una
+nombres del grupo y todo el histórico. Hazlo **una
 vez y desde un solo sitio**: al conectar con la hoja, todo sube y los otros tres lo reciben
 sin tocar ningún fichero.
 
@@ -40,11 +40,11 @@ Cómo se tradujo cada columna de esa hoja:
 | `Precio Total` / `Nº Personas` | no se importan: eran el origen del precio por persona |
 | Precio 0 o `N/A` | *sin precio* (no se apuntó), para que no falsee el gasto |
 | `Fecha` (dd/mm/aaaa) | fecha; 3 salas no tenían y salen como *sin fecha* |
-| `Victor` / `Ji` / `Josemi` / `Dani` | quién fue |
+| Una columna por persona con `TRUE`/`FALSE` | quién fue |
 | Fila con fecha, o con 3+ asistentes | **jugada** |
-| Fila sin fecha y sin asistentes | **pendiente** (Outline, SWAT, The resistance, El virus, Space Escape, La biblioteca magica) |
+| Fila sin fecha y sin asistentes | **sin jugar** |
 | `Comentarios` | notas |
-| `Puntuacion` | nota de 1 a 5 — estaba vacía en toda la hoja, así que hay 31 salas por valorar |
+| `Puntuacion` | nota de 1 a 5 |
 
 La **empresa** y la **ciudad** no estaban en la hoja: se han deducido del dominio de la web
 (maximumescape.com → Maximum Escape, etc.) y de lo que delata la URL (Gavà, L'Hospitalet,
@@ -107,14 +107,53 @@ guardan en el móvil y se suben a la hoja en cuanto vuelve la conexión.
 
 - **Jugadas**: cada sala con su ordinal por fecha, insignia de resultado, nota, precio por
   persona, fecha, quién fue y enlace a la web. Se puede buscar, filtrar por colega y ordenar.
-- **Queremos ir**: la lista de deseos. El botón ✓ pasa una sala a jugadas.
+- **No jugadas**: todo lo que queda por jugar (el catálogo de la provincia y las vuestras).
+  Con buscador, filtro por ciudad y orden por nombre/ciudad/empresa. El botón ✓ abre la
+  ficha para apuntar día, precio y quién fue.
 - **La cuadrilla**: nombres editables y, por cada uno, salas, % de fugas y gasto acumulado.
 - **Ajustes**: conexión con la hoja, sincronizar ahora, copia de seguridad (exportar/importar
   JSON) e instalación.
 
+### Cómo se calcula el precio
+
+Al jugar una sala se apuntan dos cosas: el **precio total** pagado y el **nº de personas**
+entre las que se repartió, que puede incluir gente de fuera de la cuadrilla. De ahí sale:
+
+- **por persona** = precio total ÷ nº de personas
+- **lo que puso la cuadrilla** = por persona × cuántos de vosotros fuisteis
+
+Ejemplo: cuatro de la cuadrilla más un amigo pagan 120 € entre cinco. Se apunta 120 y 5
+personas: salen 24 € por persona y 96 € de la cuadrilla, que es lo que cuenta en el gasto de
+cada uno. El formulario lo va calculando mientras escribes.
+
+El nº de personas se rellena solo con los de la cuadrilla que marcas, y se puede cambiar a
+mano cuando venga alguien más.
+
+### El catálogo de salas por jugar
+
+El catálogo de salas por jugar se baja de [escaperoomlover.com](https://www.escaperoomlover.com)
+—una provincia entera: nombre, empresa, ciudad, enlace a su ficha y, en las notas, la
+referencia de jugadores y precio de la web—. **Sin precio propio**: ese se apunta el día que
+se juega, que es el que de verdad se pagó.
+
+Las ya jugadas no se duplican: se cruzan por nombre, y las que estuvieran apuntadas con otro
+nombre se listan en un `excluir.json` local (ver más abajo).
+
+Para rehacerlo o ampliarlo a otra provincia, en `herramientas/`:
+
+```bash
+node herramientas/catalogo.js barcelona catalogo.json 15
+node herramientas/dedupe.js catalogo.json datos-iniciales.json catalogo-barcelona.json excluir.json
+```
+
+Luego se importa el resultado desde *Ajustes → Importar copia*. Va a 1 segundo por página
+a propósito: es una web ajena.
+
 ### Editar directamente en la hoja
 
-La pestaña **Salas** es una fila por sala, y **Quién fue** son nombres separados por comas.
+La pestaña **Salas** es una fila por sala; **Quién fue** son nombres separados por comas, y
+**Nº personas** es entre cuántas se repartió el precio. La columna **Estado** dice *Jugada* o
+*Sin jugar*.
 Puedes añadir o corregir filas a mano: la web lo recoge en la siguiente sincronización. Si
 escribes un nombre que no existe, se añade solo a la pestaña *Colegas*. No borres las
 columnas `id` ni `Actualizado`: son las que permiten fusionar los cambios de todos.
@@ -162,6 +201,8 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | `sw.js`, `manifest.webmanifest`, `icons/` | Lo que la convierte en app instalable y sin conexión. |
 | `robots.txt` | Mantiene la web fuera de los buscadores. |
 | `apps-script/Codigo.gs` | El puente con la hoja de cálculo (va pegado en Apps Script). |
+| `herramientas/catalogo.js`, `herramientas/dedupe.js` | Bajan el catálogo de escaperoomlover y le quitan las salas que ya teníais. |
+| `catalogo-*.json`, `excluir.json` | El catálogo y sus excepciones. **Fuera del repo**, como el histórico. |
 | `datos-iniciales.json` | El histórico convertido de vuestra hoja. **No se sube al repo**: se importa a mano una vez. |
 
 ## Probarla en local

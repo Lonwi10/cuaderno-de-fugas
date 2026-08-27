@@ -30,8 +30,8 @@ var ID_HOJA = '';
 var HOJA_SALAS = 'Salas';
 var HOJA_COLEGAS = 'Colegas';
 
-var COLS_SALAS = ['id', 'Sala', 'Empresa', 'Ciudad', 'Web', 'Precio', 'Precio es', 'Estado',
-                  'Fecha', 'Quién fue', 'Resultado', 'Tiempo restante', 'Nota', 'Notas',
+var COLS_SALAS = ['id', 'Sala', 'Empresa', 'Ciudad', 'Web', 'Precio', 'Precio es', 'Nº personas',
+                  'Estado', 'Fecha', 'Quién fue', 'Resultado', 'Tiempo restante', 'Nota', 'Notas',
                   'Actualizado', 'Borrada'];
 var COLS_COLEGAS = ['id', 'Nombre', 'Color', 'Actualizado', 'Borrado'];
 var PAL = ['#C08B2C', '#5E8C6A', '#B0674F', '#5F82A0', '#8E6E9E', '#8A8B4A', '#4E8F8B', '#A85C79'];
@@ -99,6 +99,7 @@ function normalizar(st) {
     r.priceMode = r.priceMode === 'pp' ? 'pp' : 'total';
     if (r.escaped !== true && r.escaped !== false) r.escaped = null;
     r.rating = +r.rating || 0;
+    r.people = r.people === '' || r.people == null ? '' : (+r.people || '');
   });
   return { players: players, rooms: rooms };
 }
@@ -124,8 +125,8 @@ function hoja(nombre, cols) {
     sh.setFrozenRows(1);
     sh.getRange(1, 1, sh.getMaxRows(), 1).setNumberFormat('@');          // id como texto
     if (nombre === HOJA_SALAS) {
-      sh.getRange(1, 9, sh.getMaxRows(), 1).setNumberFormat('@');        // Fecha
-      sh.getRange(1, 15, sh.getMaxRows(), 1).setNumberFormat('@');       // Actualizado
+      sh.getRange(1, 10, sh.getMaxRows(), 1).setNumberFormat('@');       // Fecha
+      sh.getRange(1, 16, sh.getMaxRows(), 1).setNumberFormat('@');       // Actualizado
       sh.setColumnWidth(2, 220);
       sh.setColumnWidth(14, 280);
     } else {
@@ -165,32 +166,64 @@ function uid() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
+/** Índice de columnas por su nombre de cabecera: así el orden de la hoja puede
+ *  cambiar (o venir de una versión anterior) sin descolocar la lectura. */
+function indice(sh, cols) {
+  var cab = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), cols.length)).getValues()[0];
+  var idx = {};
+  cab.forEach(function (nombre, i) {
+    var k = String(nombre || '').trim();
+    if (k && idx[k] === undefined) idx[k] = i;
+  });
+  return function (nombre) {
+    var i = idx[nombre];
+    return i === undefined ? -1 : i;
+  };
+}
+function celda(fila, col) {
+  var i = col;
+  return i < 0 || fila[i] == null ? '' : fila[i];
+}
+
 /** Lee las dos pestañas y devuelve el cuaderno en el formato de la web. */
 function leer() {
   var shC = hoja(HOJA_COLEGAS, COLS_COLEGAS);
   var shS = hoja(HOJA_SALAS, COLS_SALAS);
 
+  var c = indice(shC, COLS_COLEGAS);
+  var C = { id: c('id'), nombre: c('Nombre'), color: c('Color'), act: c('Actualizado'), baja: c('Borrado') };
+
   var players = [];
   var porNombre = {};
-  filas(shC).forEach(function (f, i) {
-    var nombre = String(f[1] || '').trim();
-    if (!nombre && !f[0]) return;
+  filas(shC).forEach(function (f) {
+    var nombre = String(celda(f, C.nombre) || '').trim();
+    var id = String(celda(f, C.id) || '').trim();
+    if (!nombre && !id) return;
     var p = {
-      id: String(f[0] || '').trim() || uid(),
+      id: id || uid(),
       name: nombre,
-      color: String(f[2] || '').trim() || PAL[players.length % PAL.length],
-      updatedAt: aMs(f[3]) || Date.now(),
-      deleted: verdad(f[4]) || undefined
+      color: String(celda(f, C.color) || '').trim() || PAL[players.length % PAL.length],
+      updatedAt: aMs(celda(f, C.act)) || Date.now(),
+      deleted: verdad(celda(f, C.baja)) || undefined
     };
     players.push(p);
     if (nombre) porNombre[nombre.toLowerCase()] = p;
   });
 
+  var s = indice(shS, COLS_SALAS);
+  var S = {
+    id: s('id'), sala: s('Sala'), empresa: s('Empresa'), ciudad: s('Ciudad'), web: s('Web'),
+    precio: s('Precio'), modo: s('Precio es'), personas: s('Nº personas'), estado: s('Estado'),
+    fecha: s('Fecha'), quien: s('Quién fue'), res: s('Resultado'), tiempo: s('Tiempo restante'),
+    nota: s('Nota'), notas: s('Notas'), act: s('Actualizado'), baja: s('Borrada')
+  };
+
   var rooms = [];
   filas(shS).forEach(function (f) {
-    var nombre = String(f[1] || '').trim();
-    if (!nombre && !f[0]) return;
-    var quien = String(f[9] || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    var nombre = String(celda(f, S.sala) || '').trim();
+    var id = String(celda(f, S.id) || '').trim();
+    if (!nombre && !id) return;
+    var quien = String(celda(f, S.quien) || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
     var ids = quien.map(function (n) {
       var p = porNombre[n.toLowerCase()];
       if (!p) {                                    // nombre escrito a mano en la hoja
@@ -200,24 +233,27 @@ function leer() {
       }
       return p.id;
     });
-    var res = String(f[10] || '').trim().toLowerCase();
+    var res = String(celda(f, S.res) || '').trim().toLowerCase();
+    var precio = celda(f, S.precio);
+    var personas = celda(f, S.personas);
     rooms.push({
-      id: String(f[0] || '').trim() || uid(),
+      id: id || uid(),
       name: nombre,
-      company: String(f[2] || '').trim(),
-      city: String(f[3] || '').trim(),
-      web: String(f[4] || '').trim(),
-      price: f[5] === '' || f[5] == null ? '' : String(f[5]).replace('.', ','),
-      priceMode: String(f[6] || '').toLowerCase().indexOf('persona') !== -1 ? 'pp' : 'total',
-      status: String(f[7] || '').toLowerCase().indexOf('pend') !== -1 ? 'wish' : 'done',
-      date: aFecha(f[8]),
+      company: String(celda(f, S.empresa) || '').trim(),
+      city: String(celda(f, S.ciudad) || '').trim(),
+      web: String(celda(f, S.web) || '').trim(),
+      price: precio === '' ? '' : String(precio).replace('.', ','),
+      priceMode: String(celda(f, S.modo) || '').toLowerCase().indexOf('persona') !== -1 ? 'pp' : 'total',
+      people: personas === '' ? '' : (+personas || ''),
+      status: /pend|sin jugar|no jugad/.test(String(celda(f, S.estado) || '').toLowerCase()) ? 'wish' : 'done',
+      date: aFecha(celda(f, S.fecha)),
       who: ids,
       escaped: res.indexOf('escap') === 0 ? true : (res ? false : null),
-      timeLeft: String(f[11] || '').trim(),
-      rating: +f[12] || 0,
-      notes: String(f[13] || '').trim(),
-      updatedAt: aMs(f[14]) || Date.now(),
-      deleted: verdad(f[15]) || undefined
+      timeLeft: String(celda(f, S.tiempo) || '').trim(),
+      rating: +celda(f, S.nota) || 0,
+      notes: String(celda(f, S.notas) || '').trim(),
+      updatedAt: aMs(celda(f, S.act)) || Date.now(),
+      deleted: verdad(celda(f, S.baja)) || undefined
     });
   });
 
@@ -250,7 +286,8 @@ function escribir(st) {
       r.web || '',
       r.price === '' || r.price == null ? '' : r.price,
       r.priceMode === 'pp' ? 'por persona' : 'total',
-      r.status === 'wish' ? 'Pendiente' : 'Jugada',
+      r.people === '' || r.people == null ? '' : r.people,
+      r.status === 'wish' ? 'Sin jugar' : 'Jugada',
       r.date || '',
       (r.who || []).map(function (id) { return nombrePorId[id] || ''; }).filter(Boolean).join(', '),
       r.escaped === true ? 'Escapamos' : (r.escaped === false ? 'No salimos' : ''),

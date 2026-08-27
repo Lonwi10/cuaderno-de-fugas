@@ -48,6 +48,8 @@
       if (r.priceMode !== 'pp') r.priceMode = 'total';
       if (r.escaped !== true && r.escaped !== false) r.escaped = null;
       r.rating = +r.rating || 0;
+      // personas que pagaron, incluidas las de fuera de la cuadrilla
+      r.people = r.people == null || r.people === '' ? '' : (+r.people || '');
     });
     return st;
   }

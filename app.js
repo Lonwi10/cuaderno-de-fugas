@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var ui = { tab: 'done', q: '', who: '', sort: 'date' };
+  var ui = { tab: 'done', q: '', who: '', sort: 'date', city: '', sortWish: 'name' };
   try {
     var saved = sessionStorage.getItem('cdf:ui');
     if (saved) ui = Object.assign(ui, JSON.parse(saved));
@@ -34,17 +34,19 @@
     if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
     return String(name || '?').trim().slice(0, 2).toUpperCase();
   }
+  /* Precio: lo que se apunta es el total pagado y entre cuántas personas se
+     repartió (pueden ser más que los de la cuadrilla). De ahí sale lo que puso
+     cada uno, y de ahí lo que puso el grupo. */
+  function attendees(r) { return (r.who && r.who.length) || 0; }
   function perPerson(r) {
     var p = num(r.price);
     if (r.priceMode === 'pp') return p;
-    var n = (r.who && r.who.length) || 0;
+    var n = num(r.people) || attendees(r);
     return n ? p / n : p;
   }
   function groupTotal(r) {
-    var p = num(r.price);
-    if (r.priceMode !== 'pp') return p;
-    var n = (r.who && r.who.length) || 0;
-    return n ? p * n : p;
+    var n = attendees(r);
+    return n ? perPerson(r) * n : num(r.price);
   }
   function done() { return Store.rooms().filter(function (r) { return r.status !== 'wish'; }); }
   function wish() { return Store.rooms().filter(function (r) { return r.status === 'wish'; }); }
@@ -66,6 +68,10 @@
     }
     return v;
   }
+  function hoy() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
   function host(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return u; } }
 
   /* ---------- iconos ---------- */
@@ -82,6 +88,15 @@
     up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><path d="M12 19V8m0 0 4 4m-4-4-4 4"/><path d="M4 4h16"/></svg>',
     phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true" class="i15"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>'
   };
+  /* Línea viva bajo el precio: cómo queda el reparto con lo que hay escrito. */
+  function reparto(r) {
+    if (!num(r.price)) return '<p class="reparto hint">Escribe el precio y se reparte solo.</p>';
+    var n = attendees(r);
+    return '<p class="reparto">' + money(perPerson(r)) + ' por persona' +
+      (n ? ' · ' + money(groupTotal(r)) + (n === 1 ? ' de la cuadrilla (1 persona)' : ' entre los ' + n + ' de la cuadrilla') : '') +
+      '</p>';
+  }
+
   function keys(n, cls) {
     var out = '';
     for (var i = 1; i <= 5; i++) out += ICO.key.replace('<svg ', '<svg class="' + (i <= n ? 'on' : '') + '" ');
@@ -166,7 +181,7 @@
     '</header>';
 
     html += '<section class="stats">' +
-      tile('Salas jugadas', d.length, w.length ? w.length + ' en la lista de deseos' : 'sin pendientes', true) +
+      tile('Salas jugadas', d.length, w.length ? w.length + ' sin jugar' : 'ninguna apuntada', true) +
       tile('Fugas logradas', escaped, d.length ? Math.round(escaped / d.length * 100) + '% de las salas' : '—', false) +
       tile('Gasto del grupo', money(spend), d.length ? money(spend / d.length) + ' por sala' : '—', false) +
       tile('Nota media', avg ? avg.toFixed(1) : '—', rated.length ? rated.length + ' salas valoradas' : 'sin valorar', false) +
@@ -191,7 +206,7 @@
 
     html += '<nav class="tabs" role="tablist">' +
       tab('done', 'Jugadas', d.length) +
-      tab('wish', 'Queremos ir', w.length) +
+      tab('wish', 'No jugadas', w.length) +
       tab('crew', 'La cuadrilla', players.length) +
       tab('cfg', 'Ajustes', '') +
     '</nav>';
@@ -203,6 +218,10 @@
     app.innerHTML = html;
     var sel = document.getElementById('sort');
     if (sel) sel.value = ui.sort;
+    var selC = document.getElementById('cityf');
+    if (selC) selC.value = ui.city;
+    var selW = document.getElementById('sortwish');
+    if (selW) selW.value = ui.sortWish;
     paintStatus();
   }
 
@@ -232,15 +251,35 @@
       html += '<select class="sel" id="sort" aria-label="Ordenar">' +
         opt('date', 'Más recientes') + opt('old', 'Más antiguas') + opt('rating', 'Mejor valoradas') +
         opt('price', 'Más caras') + opt('name', 'Por nombre') + '</select>';
+    } else {
+      // con cientos de salas por jugar, filtrar por ciudad es lo que salva la lista
+      html += '<select class="sel" id="cityf" aria-label="Ciudad">' + opt('', 'Todas las ciudades') +
+        ciudades(list).map(function (c) { return opt(c.city, c.city + ' (' + c.n + ')'); }).join('') + '</select>';
+      html += '<select class="sel" id="sortwish" aria-label="Ordenar">' +
+        opt('name', 'Por nombre') + opt('city', 'Por ciudad') + opt('company', 'Por empresa') + '</select>';
     }
     html += '<div class="spacer"></div>' +
-      '<button class="btn primary" data-act="new">' + ICO.plus + (ui.tab === 'wish' ? 'Añadir a la lista' : 'Nueva sala') + '</button>' +
+      '<button class="btn primary" data-act="new">' + ICO.plus + (ui.tab === 'wish' ? 'Añadir sala' : 'Nueva sala') + '</button>' +
     '</div>';
 
     var shown = filtered(list);
+    html += '<p class="count hint">' + shown.length + (shown.length === 1 ? ' sala' : ' salas') +
+      (shown.length !== list.length ? ' de ' + list.length : '') + '</p>';
     if (!shown.length) return html + emptyState(list.length, ui.tab);
     var ord = ordinals();
     return html + '<section class="grid">' + shown.map(function (r) { return card(r, ord[r.id], players); }).join('') + '</section>';
+  }
+
+  /* Ciudades presentes en una lista, ordenadas por nº de salas. */
+  function ciudades(list) {
+    var cuenta = {};
+    list.forEach(function (r) {
+      var c = String(r.city || '').trim();
+      if (c) cuenta[c] = (cuenta[c] || 0) + 1;
+    });
+    return Object.keys(cuenta).sort(function (a, b) {
+      return cuenta[b] - cuenta[a] || a.localeCompare(b, 'es');
+    }).map(function (c) { return { city: c, n: cuenta[c] }; });
   }
 
   function filtered(list) {
@@ -248,14 +287,18 @@
     var out = list.filter(function (r) {
       if (q && [r.name, r.company, r.city, r.notes].join(' ').toLowerCase().indexOf(q) === -1) return false;
       if (ui.tab === 'done' && ui.who && (!r.who || r.who.indexOf(ui.who) === -1)) return false;
+      if (ui.tab === 'wish' && ui.city && String(r.city || '').trim() !== ui.city) return false;
       return true;
     });
-    out.sort(sorter(ui.tab === 'wish' ? 'name' : ui.sort));
+    out.sort(sorter(ui.tab === 'wish' ? ui.sortWish : ui.sort));
     return out;
   }
   function sorter(mode) {
+    var porNombre = function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'es'); };
     return function (a, b) {
-      if (mode === 'name') return String(a.name || '').localeCompare(String(b.name || ''), 'es');
+      if (mode === 'name') return porNombre(a, b);
+      if (mode === 'city') return String(a.city || 'zzz').localeCompare(String(b.city || 'zzz'), 'es') || porNombre(a, b);
+      if (mode === 'company') return String(a.company || 'zzz').localeCompare(String(b.company || 'zzz'), 'es') || porNombre(a, b);
       if (mode === 'rating') return num(b.rating) - num(a.rating) || String(b.date || '').localeCompare(String(a.date || ''));
       if (mode === 'price') return perPerson(b) - perPerson(a);
       if (mode === 'old') return String(a.date || '9999').localeCompare(String(b.date || '9999'));
@@ -267,7 +310,7 @@
     var isWish = r.status === 'wish';
     var url = safeUrl(r.web);
     var pp = perPerson(r), gt = groupTotal(r);
-    var badge = isWish ? '<span class="badge wish">Pendiente</span>'
+    var badge = isWish ? '<span class="badge wish">Sin jugar</span>'
       : r.escaped === true ? '<span class="badge win">Fuga' + (r.timeLeft ? ' · ' + esc(r.timeLeft) : '') + '</span>'
       : r.escaped === false ? '<span class="badge lose">Sin fuga</span>'
       : '<span class="badge unk">Jugada</span>';
@@ -280,20 +323,21 @@
 
     return '<article class="card' + (isWish ? ' wishlist' : '') + '">' +
       '<div class="crown"><span class="ord">' +
-        (isWish ? 'En la lista' : (ord ? 'Sala nº ' + String(ord).padStart(2, '0') : 'Sin fecha')) +
+        (isWish ? 'Sin jugar' : (ord ? 'Sala nº ' + String(ord).padStart(2, '0') : 'Sin fecha')) +
       '</span>' + badge + '</div>' +
       '<h3>' + esc(r.name || 'Sin nombre') + '</h3>' +
       (meta ? '<p class="meta">' + meta + '</p>' : '') +
       (isWish ? '' : keys(num(r.rating))) +
       (r.notes ? '<p class="notes">' + esc(r.notes) + '</p>' : '') +
       '<div class="foot">' +
-        (num(r.price) ? '<span class="price">' + money(pp) + ' <small>/persona' + (gt !== pp ? ' · ' + money(gt) + ' total' : '') + '</small></span>'
-                      : '<span class="price"><small>sin precio</small></span>') +
+        (isWish ? '' : (num(r.price)
+          ? '<span class="price">' + money(pp) + ' <small>/persona' + (attendees(r) > 1 ? ' · ' + money(gt) + ' la cuadrilla' : '') + '</small></span>'
+          : '<span class="price"><small>sin precio</small></span>')) +
         (r.date && !isWish ? '<span class="when">' + esc(fdate(r.date)) + '</span>' : '') +
         '<span class="spacer"></span>' + who +
         (url ? '<a class="iconlink" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="' + esc(host(url)) + '">' + ICO.link + '</a>' : '') +
         '<div class="acts">' +
-          (isWish ? '<button class="btn ghost" data-act="didit" data-id="' + r.id + '" title="Marcar como jugada">' + ICO.check + '</button>' : '') +
+          (isWish ? '<button class="btn ghost" data-act="didit" data-id="' + r.id + '" title="La hemos jugado">' + ICO.check + '</button>' : '') +
           '<button class="btn ghost" data-act="edit" data-id="' + r.id + '" title="Editar">' + ICO.edit + '</button>' +
         '</div>' +
       '</div>' +
@@ -301,18 +345,23 @@
   }
 
   function emptyState(total, tabId) {
+    // si la lista tiene salas y no se ve ninguna, el problema es el filtro
+    if (total > 0) {
+      return '<div class="empty"><h3>Nada coincide con el filtro</h3>' +
+        '<p>Prueba con otro texto, otra ciudad o quita los filtros.</p>' +
+        '<button class="btn" data-act="clearf">Quitar filtros</button></div>';
+    }
     if (tabId === 'wish') {
-      return '<div class="empty"><h3>La lista de deseos está vacía</h3>' +
-        '<p>Apunta las salas que os apetecen con su precio y su web; cuando la juguéis, un clic la pasa a jugadas.</p>' +
-        '<button class="btn" data-act="new">' + ICO.plus + 'Añadir una sala pendiente</button></div>';
+      return '<div class="empty"><h3>No hay ninguna sala sin jugar</h3>' +
+        '<p>Aquí va el catálogo de salas que os quedan. Cuando juguéis una, el botón ✓ abre la ficha para poner día, precio y quién fue.</p>' +
+        '<button class="btn" data-act="new">' + ICO.plus + 'Añadir una sala</button></div>';
     }
     if (total === 0) {
       return '<div class="empty"><h3>Aún no hay ninguna sala apuntada</h3>' +
         '<p>Empieza por la última que hicisteis: nombre, empresa, precio y web. El resto se rellena solo.</p>' +
         '<button class="btn primary" data-act="new">' + ICO.plus + 'Apuntar la primera sala</button></div>';
     }
-    return '<div class="empty"><h3>Nada coincide con el filtro</h3><p>Prueba con otro texto o quita el filtro de jugador.</p>' +
-      '<button class="btn" data-act="clearf">Quitar filtros</button></div>';
+    return '';
   }
 
   function setupPanel() {
@@ -402,9 +451,10 @@
   /* ---------- formulario ---------- */
   var dlg = document.createElement('dialog');
   document.body.appendChild(dlg);
-  var draft = null;
+  var draft = null, tituloForm = '';
 
-  function openForm(room, presetStatus) {
+  function openForm(room, presetStatus, titulo) {
+    tituloForm = titulo || '';
     var players = Store.players();
     draft = room ? JSON.parse(JSON.stringify(room)) : {
       id: '', name: '', company: '', city: '', web: '', price: '', priceMode: 'total',
@@ -424,7 +474,7 @@
     var r = draft, players = Store.players();
     var isWish = r.status === 'wish';
     dlg.innerHTML = '<form id="roomform">' +
-      '<div class="dh"><h2>' + (r.id ? 'Editar sala' : (isWish ? 'Sala pendiente' : 'Nueva sala')) + '</h2>' +
+      '<div class="dh"><h2>' + (tituloForm || (r.id ? 'Editar sala' : (isWish ? 'Sala sin jugar' : 'Nueva sala'))) + '</h2>' +
         '<button type="button" class="btn ghost" data-act="close">Cerrar</button></div>' +
       '<div class="db">' +
         '<div class="field"><span class="lbl">Nombre de la sala</span>' +
@@ -435,21 +485,29 @@
         '</div>' +
         '<div class="field"><span class="lbl">Web</span><input class="txt" name="web" value="' + esc(r.web) + '" placeholder="escaperoomvalencia.com" inputmode="url" autocomplete="off"></div>' +
         '<div class="row2">' +
-          '<div class="field"><span class="lbl">Precio</span>' +
-            '<input class="txt" name="price" value="' + esc(r.price) + '" inputmode="decimal" placeholder="0,00">' +
-            '<div class="seg mt6">' +
-              '<button type="button" data-act="pmode" data-v="total" aria-pressed="' + (r.priceMode !== 'pp') + '">Total del grupo</button>' +
-              '<button type="button" data-act="pmode" data-v="pp" aria-pressed="' + (r.priceMode === 'pp') + '">Por persona</button>' +
-            '</div></div>' +
           '<div class="field"><span class="lbl">Estado</span>' +
             '<div class="seg">' +
               '<button type="button" data-act="status" data-v="done" aria-pressed="' + (!isWish) + '">Ya jugada</button>' +
-              '<button type="button" data-act="status" data-v="wish" aria-pressed="' + isWish + '">Nos apetece</button>' +
+              '<button type="button" data-act="status" data-v="wish" aria-pressed="' + isWish + '">Sin jugar</button>' +
             '</div>' +
-            (isWish ? '<p class="hint">Las pendientes no llevan fecha ni resultado.</p>'
-                    : '<div class="mt6"><span class="lbl">Fecha</span><input class="txt" type="date" name="date" value="' + esc(r.date) + '"></div>') +
+            (isWish ? '<p class="hint">Las de sin jugar no llevan fecha, precio ni resultado: eso se rellena el día que la juguéis.</p>'
+                    : '<div class="mt6"><span class="lbl">Día <em class="opt">(opcional)</em></span><input class="txt" type="date" name="date" value="' + esc(r.date) + '"></div>') +
           '</div>' +
+          (isWish ? '<div></div>' :
+            '<div class="field"><span class="lbl">Nº de personas</span>' +
+              '<input class="txt" name="people" value="' + esc(r.people) + '" inputmode="numeric" placeholder="' + (attendees(r) || 4) + '">' +
+              '<p class="hint">Entre cuántas se repartió el precio, contando a quien no sea de la cuadrilla.</p>' +
+            '</div>') +
         '</div>' +
+        (isWish ? '' :
+          '<div class="field"><span class="lbl">Precio total</span>' +
+            '<input class="txt" name="price" value="' + esc(r.price) + '" inputmode="decimal" placeholder="0,00">' +
+            '<div class="seg mt6">' +
+              '<button type="button" data-act="pmode" data-v="total" aria-pressed="' + (r.priceMode !== 'pp') + '">Es el total</button>' +
+              '<button type="button" data-act="pmode" data-v="pp" aria-pressed="' + (r.priceMode === 'pp') + '">Ya es por persona</button>' +
+            '</div>' +
+            reparto(r) +
+          '</div>') +
         (isWish ? '' :
           '<div class="field"><span class="lbl">¿Quién fue?</span><div class="who-filter">' +
             players.map(function (p) {
@@ -501,9 +559,9 @@
     var act = t.getAttribute('data-act');
     var id = t.getAttribute('data-id');
 
-    if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); ui.q = ''; saveUi(); render(); return; }
+    if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); ui.q = ''; ui.city = ''; saveUi(); render(); return; }
     if (act === 'who') { ui.who = (ui.who === id) ? '' : id; saveUi(); render(); return; }
-    if (act === 'clearf') { ui.q = ''; ui.who = ''; saveUi(); render(); return; }
+    if (act === 'clearf') { ui.q = ''; ui.who = ''; ui.city = ''; saveUi(); render(); return; }
     if (act === 'new') { openForm(null, ui.tab === 'wish' ? 'wish' : 'done'); return; }
     if (act === 'edit') { var room = Store.room(id); if (room) openForm(room); return; }
     if (act === 'close') { dlg.close(); return; }
@@ -578,15 +636,17 @@
       render();
       return;
     }
+    /* La hemos jugado: abre la ficha con lo típico ya puesto (hoy, la cuadrilla
+       entera) para rellenar día, precio, quién fue y resultado. */
     if (act === 'didit') {
       var rr = Store.room(id);
       if (!rr) return;
-      rr.status = 'done';
-      if (!rr.who || !rr.who.length) rr.who = Store.players().map(function (p) { return p.id; });
-      Store.commit([rr]);
-      ui.tab = 'done'; saveUi();
-      render();
-      toast('“' + (rr.name || 'Sala') + '” pasa a jugadas. Ponle fecha y nota cuando puedas.');
+      var recien = JSON.parse(JSON.stringify(rr));
+      recien.status = 'done';
+      if (!recien.who || !recien.who.length) recien.who = Store.players().map(function (p) { return p.id; });
+      if (!String(recien.people == null ? '' : recien.people).trim()) recien.people = String(recien.who.length);
+      if (!recien.date) recien.date = hoy();
+      openForm(recien, null, '¡Jugada!');
       return;
     }
 
@@ -596,8 +656,12 @@
     if (act === 'status') { syncForm(); draft.status = t.getAttribute('data-v'); renderForm(); return; }
     if (act === 'tw') {
       syncForm();
+      var antes = draft.who.length;
       var i2 = draft.who.indexOf(id);
       if (i2 === -1) draft.who.push(id); else draft.who.splice(i2, 1);
+      // el nº de personas sigue a la cuadrilla mientras no se toque a mano
+      var auto = !String(draft.people == null ? '' : draft.people).trim() || num(draft.people) === antes;
+      if (auto) draft.people = draft.who.length ? String(draft.who.length) : '';
       renderForm();
       return;
     }
@@ -643,6 +707,20 @@
   });
   dlg.addEventListener('close', function () { draft = null; });
 
+  /* Precio y nº de personas: se recalcula el reparto sin repintar el formulario
+     (si no, se perdería el foco a media cifra). */
+  dlg.addEventListener('input', function (ev) {
+    if (!draft) return;
+    var nm = ev.target.getAttribute && ev.target.getAttribute('name');
+    if (nm !== 'price' && nm !== 'people') return;
+    syncForm();
+    var box = dlg.querySelector('.reparto');
+    if (!box) return;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = reparto(draft);
+    box.replaceWith(tmp.firstElementChild);
+  });
+
   document.addEventListener('input', function (ev) {
     var t = ev.target;
     if (t.id === 'q') { ui.q = t.value; saveUi(); rerenderList(); return; }
@@ -653,6 +731,8 @@
   });
   document.addEventListener('change', function (ev) {
     if (ev.target.id === 'sort') { ui.sort = ev.target.value; saveUi(); render(); return; }
+    if (ev.target.id === 'cityf') { ui.city = ev.target.value; saveUi(); render(); return; }
+    if (ev.target.id === 'sortwish') { ui.sortWish = ev.target.value; saveUi(); render(); return; }
     if (ev.target.id === 'importfile') {
       var file = ev.target.files && ev.target.files[0];
       if (!file) return;

@@ -8,3 +8,7 @@ node_modules/
 datos-iniciales.json
 *.copia.json
 cuaderno-de-fugas*.json
+
+# el catálogo del grupo tampoco se publica
+catalogo*.json
+excluir.json
