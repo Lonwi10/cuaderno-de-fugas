@@ -135,6 +135,17 @@
     paintStatus();
   });
 
+  // Safari no dispara beforeinstallprompt: en iPhone hay que explicar el camino a mano.
+  function esApple() {
+    var ua = navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) ||
+      (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);   // el iPad se hace pasar por Mac
+  }
+  function yaInstalada() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+      navigator.standalone === true;                            // Safari en pantalla de inicio
+  }
+
   /* ---------- indicador de sincronización ---------- */
   function paintStatus() {
     var box = document.getElementById('savechip');
@@ -440,9 +451,17 @@
         '<input type="file" id="importfile" accept="application/json,.json" hidden>' +
       '</div></div>';
 
-    html += '<div class="panel"><h2>Instalar en el móvil</h2>' +
-      '<p>No hace falta APK: abre esta web en Chrome y usa <em>Añadir a pantalla de inicio</em>. Queda como una app, con icono propio, y funciona sin cobertura (los cambios se suben cuando vuelva).</p>' +
-      (installEvent ? '<div class="btnrow"><button class="btn primary" data-act="install">' + ICO.phone + 'Instalar ahora</button></div>' : '') +
+    html += '<div class="panel"><h2>Instalar en el móvil</h2>';
+    if (yaInstalada()) {
+      html += '<p>Ya está instalada en este dispositivo: lo estás usando como app.</p>';
+    } else if (esApple()) {
+      html += '<p>No hace falta App Store: abre esta web en <em>Safari</em>, pulsa <em>Compartir</em> (el cuadrado con la flecha hacia arriba) y elige <em>Añadir a pantalla de inicio</em>. Queda como una app, con icono propio, y funciona sin cobertura (los cambios se suben cuando vuelva).</p>' +
+        '<p class="hint">En iPhone no hay botón de instalar: Safari solo lo deja hacer desde Compartir, y conviene que sea Safari — desde otros navegadores el icono puede quedarse en un simple acceso directo.</p>';
+    } else {
+      html += '<p>No hace falta APK: abre esta web en Chrome y usa <em>Añadir a pantalla de inicio</em>. Queda como una app, con icono propio, y funciona sin cobertura (los cambios se suben cuando vuelva).</p>' +
+        (installEvent ? '<div class="btnrow"><button class="btn primary" data-act="install">' + ICO.phone + 'Instalar ahora</button></div>' : '');
+    }
+    html += '<p class="hint">El cuaderno se guarda en el propio móvil: si borras el icono, se va con él. Con la hoja conectada, al reinstalar lo recuperas.</p>' +
     '</div>';
 
     return html + '</section>';
