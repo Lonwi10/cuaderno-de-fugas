@@ -48,11 +48,13 @@
   }
   function done() { return Store.rooms().filter(function (r) { return r.status !== 'wish'; }); }
   function wish() { return Store.rooms().filter(function (r) { return r.status === 'wish'; }); }
+  /* Numera las salas por orden cronológico. Las que no tienen fecha no reciben
+     número: se dirá "sin fecha" en su lugar. */
   function ordinals() {
     var map = {};
-    done().slice().sort(function (a, b) {
-      return String(a.date || '9999').localeCompare(String(b.date || '9999'));
-    }).forEach(function (r, i) { map[r.id] = i + 1; });
+    done().filter(function (r) { return r.date; })
+      .sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); })
+      .forEach(function (r, i) { map[r.id] = i + 1; });
     return map;
   }
   function safeUrl(u) {
@@ -277,7 +279,9 @@
     }).join('') + '</div>';
 
     return '<article class="card' + (isWish ? ' wishlist' : '') + '">' +
-      '<div class="crown"><span class="ord">' + (isWish ? 'En la lista' : 'Sala nº ' + String(ord || '?').padStart(2, '0')) + '</span>' + badge + '</div>' +
+      '<div class="crown"><span class="ord">' +
+        (isWish ? 'En la lista' : (ord ? 'Sala nº ' + String(ord).padStart(2, '0') : 'Sin fecha')) +
+      '</span>' + badge + '</div>' +
       '<h3>' + esc(r.name || 'Sin nombre') + '</h3>' +
       (meta ? '<p class="meta">' + meta + '</p>' : '') +
       (isWish ? '' : keys(num(r.rating))) +
@@ -322,6 +326,9 @@
       '<div class="namegrid" id="setupnames">' + inputs + '</div>' +
       '<div class="btnrow"><button class="btn primary" data-act="setup">' + ICO.check + 'Empezar el cuaderno</button>' +
       '<button class="btn" data-act="tab" data-tab="cfg">Ya tengo un cuaderno: conectar</button></div>' +
+      '<p class="hint">¿Tienes una copia del cuaderno en un fichero? Cárgala y entra todo de golpe: ' +
+      '<button class="btn ghost" data-act="importbtn">' + ICO.up + 'Importar copia</button>' +
+      '<input type="file" id="importfile" accept="application/json,.json" hidden></p>' +
     '</div>';
   }
 

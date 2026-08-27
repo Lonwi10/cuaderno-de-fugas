@@ -3,3 +3,8 @@ Thumbs.db
 desktop.ini
 .DS_Store
 node_modules/
+
+# los datos del grupo NO se publican: viven en la hoja de Drive y en cada dispositivo
+datos-iniciales.json
+*.copia.json
+cuaderno-de-fugas*.json
