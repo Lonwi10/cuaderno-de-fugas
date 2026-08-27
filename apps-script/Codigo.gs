@@ -1,17 +1,31 @@
 /**
  * Cuaderno de Fugas — puente entre la web y la hoja de cálculo.
  *
- * Pega este fichero en el editor de Apps Script de tu hoja
- * (Extensiones ▸ Apps Script) y publícalo como aplicación web:
+ * Dos formas de montarlo:
+ *
+ *  A) SCRIPT SUELTO (recomendado si la hoja es de otra persona, o si tu
+ *     cuenta de empresa no te deja crear el proyecto de Cloud que Apps
+ *     Script necesita). En script.google.com, con la cuenta que quieras,
+ *     crea un proyecto nuevo, pega este fichero y rellena ID_HOJA con el id
+ *     de la hoja: es el trozo largo de su URL, entre /d/ y /edit. Necesitas
+ *     permiso de edición sobre esa hoja.
+ *
+ *  B) DENTRO DE LA HOJA: Extensiones ▸ Apps Script, pega este fichero y deja
+ *     ID_HOJA vacío.
+ *
+ * En los dos casos: ejecuta una vez la función `preparar` (crea las pestañas
+ * y pide permisos) y luego publica:
  *   Implementar ▸ Nueva implementación ▸ Aplicación web
- *   Ejecutar como: Yo
- *   Quién tiene acceso: Cualquier persona
+ *   Ejecutar como: Yo · Quién tiene acceso: Cualquier persona
  * Copia la URL que acaba en /exec y pégala en Ajustes de la web.
  *
  * La hoja es la fuente de la verdad y se puede editar a mano: cada sala es
  * una fila y "Quién fue" son nombres separados por comas. Si escribes un
  * nombre nuevo, se añade solo a la pestaña Colegas.
  */
+
+/* Id de la hoja (script suelto). Vacío = el script vive dentro de la hoja. */
+var ID_HOJA = '';
 
 var HOJA_SALAS = 'Salas';
 var HOJA_COLEGAS = 'Colegas';
@@ -91,7 +105,15 @@ function normalizar(st) {
 
 /* ---------------------------------------------------------------- hojas ---- */
 
-function libro() { return SpreadsheetApp.getActiveSpreadsheet(); }
+function libro() {
+  var id = String(ID_HOJA || '').trim();
+  if (id) return SpreadsheetApp.openById(id);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    throw new Error('Este script no está dentro de una hoja: rellena ID_HOJA con el id de la hoja.');
+  }
+  return ss;
+}
 
 function hoja(nombre, cols) {
   var ss = libro();

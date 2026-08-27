@@ -55,23 +55,36 @@ restante**.
 
 ## 3. Crear la hoja compartida (una vez, tú)
 
-Puedes usar **la hoja que ya tenéis**: el script crea dos pestañas nuevas (*Salas* y
-*Colegas*) y no toca la que ya está, que queda como histórico. O una hoja nueva, como
-prefieras.
+Se usa **la hoja que ya tenéis**: el script crea dos pestañas nuevas (*Salas* y *Colegas*) y
+no toca la que ya está, que queda como histórico.
 
-1. Abre la hoja del grupo (o crea una nueva en [sheets.new](https://sheets.new)).
-2. **Extensiones → Apps Script**. Borra lo que haya y pega el contenido de
-   [`apps-script/Codigo.gs`](apps-script/Codigo.gs). Guarda (💾).
-3. Arriba, selecciona la función `preparar` y pulsa **Ejecutar**. Google pedirá permisos:
+**Script suelto (recomendado).** Va en tu propio Drive y abre la hoja por su id. Es la vía
+buena si la hoja es de otra persona (basta con tener permiso de edición) o si tu cuenta de
+empresa no te deja crear el proyecto de Cloud que Apps Script necesita — el error
+*«No se ha podido crear el proyecto de Cloud Platform. Código de error INTERNAL»*.
+
+1. Entra en [script.google.com](https://script.google.com) con **tu cuenta personal** (mejor
+   en ventana de incógnito: tener varias cuentas de Google abiertas rompe Apps Script) y pulsa
+   **Proyecto nuevo**.
+2. Borra lo que haya y pega el contenido de [`apps-script/Codigo.gs`](apps-script/Codigo.gs).
+3. En la línea `var ID_HOJA = '';` pon el id de la hoja: el trozo largo de su URL, entre
+   `/d/` y `/edit`. Guarda (💾) y ponle nombre al proyecto.
+4. Arriba, selecciona la función `preparar` y pulsa **Ejecutar**. Google pedirá permisos:
    acéptalos (*Revisar permisos → tu cuenta → Configuración avanzada → Ir a … (no seguro) →
-   Permitir*). Se crearán las pestañas **Salas** y **Colegas**.
-4. **Implementar → Nueva implementación → Tipo: Aplicación web**:
+   Permitir*). Se crearán las pestañas **Salas** y **Colegas** en la hoja.
+
+*(Alternativa: si la hoja es tuya y tu cuenta no tiene restricciones, puedes pegar el código
+dentro de la propia hoja — Extensiones → Apps Script — y dejar `ID_HOJA` vacío.)*
+
+Y ahora, publicarlo:
+
+5. **Implementar → Nueva implementación → Tipo: Aplicación web**:
    - *Descripción*: cuaderno
    - *Ejecutar como*: **Yo**
    - *Quién tiene acceso*: **Cualquier persona**
    - **Implementar** y copia la **URL de la aplicación web** (acaba en `/exec`).
-5. Abre la web, pestaña **Ajustes**, pega la URL y pulsa **Conectar**.
-6. Pasa esa misma URL a los otros tres (por WhatsApp) para que la peguen en sus Ajustes.
+6. Abre la web, pestaña **Ajustes**, pega la URL y pulsa **Conectar**.
+7. Pasa esa misma URL a los otros tres (por WhatsApp) para que la peguen en sus Ajustes.
 
 > La URL es la llave del cuaderno: cualquiera que la tenga puede leer y escribir. No la
 > publiques en sitios abiertos. Si el repositorio es privado, puedes dejarla puesta en
