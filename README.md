@@ -140,8 +140,17 @@ El catálogo de salas por jugar se baja de [escaperoomlover.com](https://www.esc
 referencia de jugadores y precio de la web—. **Sin precio propio**: ese se apunta el día que
 se juega, que es el que de verdad se pagó.
 
-Las ya jugadas no se duplican: se cruzan por nombre, y las que estuvieran apuntadas con otro
-nombre se listan en un `excluir.json` local (ver más abajo).
+Las ya jugadas no se duplican. El cruce por nombre no busca que coincida letra a letra,
+porque casi nunca coincide: da igual cómo estén los espacios (`11 S` y `11S`), los acentos,
+las mayúsculas, los artículos, las siglas (`SWAT` y `Misión S.W.A.T.`) o las erratas de la web
+(`Sweneey Tott` por vuestro `SWEENEY TODD`), y también mira el título por separado cuando el
+nombre lleva subtítulo o la empresa delante (`Gangsters` ↔ vuestro `Gansters: Dinero, armas y
+alcohol`; `Final Code: Bermudas` ↔ vuestro `Bermudas, el secreto jamás revelado`).
+
+Lo que **nunca** se junta solo son las salas cuyo número no cuadra —`Cronologic 1` y
+`Cronologic 2`, `Nave Ulysses` y su `II`— porque son salas distintas. Esas, y las que solo
+huelen a repetidas, se listan al final con la línea ya escrita para pegarla en `excluir.json`
+si son la misma (ver más abajo).
 
 Para rehacerlo o ampliarlo a otra provincia, en `herramientas/`:
 
@@ -152,6 +161,19 @@ node herramientas/dedupe.js catalogo.json datos-iniciales.json catalogo-barcelon
 
 Luego se importa el resultado desde *Ajustes → Importar copia*. Va a 1 segundo por página
 a propósito: es una web ajena.
+
+El `excluir.json` es la última palabra, para las que no se parecen en nada al nombre con el
+que las apuntasteis. Una línea por sala, con el trozo final de su enlace y el motivo:
+
+```json
+{
+  "cronologic-1-barcelona-la-creacion": "la apuntasteis como \"Cronologic 1\""
+}
+```
+
+Esas líneas las escribe ya el propio `dedupe.js` en la lista de dudosas: se copian, se pegan
+aquí y se vuelve a lanzar. Ojo: si una sala está ya importada en el cuaderno, quitarla del
+catálogo no la borra de allí —hay que darla de baja desde la web.
 
 ### Editar directamente en la hoja
 

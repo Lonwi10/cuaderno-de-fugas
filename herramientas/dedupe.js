@@ -52,6 +52,16 @@ const GENERICOS = new Set(['escape', 'escapes', 'escaperoom', 'room', 'rooms',
 const casa = s => piezas(s).filter(p => !GENERICOS.has(p) && !/^\d+$/.test(p)).join(' ');
 const mismaCasa = (a, b) => !!(a && b && (a === b || a.startsWith(b + ' ') || b.startsWith(a + ' ')));
 
+/* Los números del nombre son sagrados: "Cronologic 1" y "Cronologic 2" se
+   parecen un 91 % y son salas distintas, igual que "Nave Ulysses" y su "II".
+   Si no cuadran, no se quita nada por parecido; como mucho se avisa.
+   ("11 S" y "11S" dan los mismos: 11.) */
+const ROMANOS = {
+  i: '1', ii: '2', iii: '3', iv: '4', v: '5', vi: '6',
+  vii: '7', viii: '8', ix: '9', x: '10', xi: '11', xii: '12'
+};
+const cifras = s => piezas(s).map(p => ROMANOS[p] || p.replace(/\D/g, '')).join('');
+
 /* Parecido entre dos claves: el mejor de bigramas (Dice) y distancia de
    edición, que fallan en casos distintos. 1 = idénticas. */
 function bigramas(s) {
@@ -94,13 +104,13 @@ function cabeDentro(a, b) {
 }
 
 const CASI_IGUAL = 0.78;   // con la misma empresa: se da por repetida
-const UN_TROZO = 0.95;     // un trozo del nombre, clavado, y la empresa cuadra
+const UN_TROZO = 0.85;     // un trozo del nombre, clavado, y la empresa cuadra
 const SOSPECHA = 0.55;     // con la misma empresa: se avisa, pero entra
 const CLAVADA = 0.9;       // sin empresa que lo respalde: solo si es clavada
 
 const mios = mio.rooms.filter(r => !r.deleted).map(r => ({
   sala: r, clave: clave(r.name), claves: claves(r.name),
-  piezas: piezas(r.name), casa: casa(r.company)
+  piezas: piezas(r.name), casa: casa(r.company), cifras: cifras(r.name)
 }));
 
 /* Salas ya jugadas que se apuntaron con otro nombre y que ni por nombre ni por
@@ -120,6 +130,7 @@ cat.rooms.forEach(s => {
   }
 
   const k = clave(s.name), ks = claves(s.name), ps = piezas(s.name), c = casa(s.company);
+  const n = cifras(s.name);
   let mejor = null;
   mios.forEach(m => {
     /* la empresa de una puede venir metida en el nombre de la otra:
@@ -131,7 +142,8 @@ cat.rooms.forEach(s => {
       punt: parecido(ks, m.claves),
       entero: parejo(k, m.clave),
       casa: mismaCasa(c, m.casa) || empresaEnNombre,
-      cabe: cabeDentro(ps, m.piezas)
+      cabe: cabeDentro(ps, m.piezas),
+      cifras: n === m.cifras
     };
     if (!mejor || cand.punt > mejor.punt || (cand.punt === mejor.punt && cand.casa && !mejor.casa)) mejor = cand;
   });
@@ -141,10 +153,12 @@ cat.rooms.forEach(s => {
     fuera.push({ cat: s.name, mio: mejor.mio.sala.name, empresa: s.company, estado: mejor.mio.sala.status, motivo: 'mismo nombre' });
     return;
   }
-  if (mejor && mejor.casa && (mejor.punt >= CASI_IGUAL || mejor.punt >= UN_TROZO)) {
+  const casiIgual = mejor && mejor.entero >= CASI_IGUAL;
+  const trozoClavado = mejor && mejor.punt >= UN_TROZO;
+  if (mejor && mejor.casa && mejor.cifras && (casiIgual || trozoClavado)) {
     fuera.push({
       cat: s.name, mio: mejor.mio.sala.name, empresa: s.company, estado: mejor.mio.sala.status,
-      motivo: mejor.entero >= CASI_IGUAL ? 'casi el mismo nombre' : 'un trozo del nombre, y la empresa cuadra'
+      motivo: casiIgual ? 'casi el mismo nombre' : 'un trozo del nombre, y la empresa cuadra'
     });
     return;
   }
