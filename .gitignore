@@ -12,3 +12,4 @@ cuaderno-de-fugas*.json
 # el catálogo del grupo tampoco se publica
 catalogo*.json
 excluir.json
+.exec-url.txt
