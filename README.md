@@ -258,7 +258,7 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | Fichero | Qué hace |
 |---|---|
 | `index.html` | La página. |
-| `styles.css` | Estilos (tema claro y oscuro automáticos). |
+| `styles.css` | Todo el diseño: identidad de expediente, tema claro (papel) y oscuro (archivo de noche) automáticos. Las reglas de la identidad están escritas en su cabecera. |
 | `store.js` | Estado, guardado local y sincronización con la hoja. |
 | `app.js` | Interfaz: pintado y eventos. |
 | `config.js` | URL de la hoja, opcional, para todo el repositorio. |

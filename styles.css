@@ -1,270 +1,609 @@
 /* ==========================================================================
    Cuaderno de Fugas — hoja de estilos
-   Paleta: papel cálido / tinta azulada, con latón (cerraduras y llaves) como
-   único acento. Musgo y arcilla solo como estados (fuga / sin fuga).
+
+   IDEA: no es un panel de control, es un ARCHIVO DE EXPEDIENTES. Cada sala es
+   una ficha de un caso. De ahí vienen las tres reglas que gobiernan todo:
+
+     1. Papel y metal, no plástico. Esquinas rectas (radio 0; 2 px solo donde
+        el ojo lo necesita), filetes de 1 px en vez de sombras, y profundidad
+        por capas de tono: fondo → superficie → superficie levantada.
+     2. La retícula manda. Las cifras van en una tira dividida por filetes, no
+        en cuatro tarjetas flotando; la cuadrilla es un listado, no tarjetas.
+        Nada de tarjeta dentro de tarjeta.
+     3. Los guiños son de 1 px. Número de expediente, sellos, corchetes de
+        prueba, pauta de cuaderno, grano de papel. Si se ven a la primera,
+        sobran.
+
+   TIPOGRAFÍA: Oswald (condensada, de cartel de sala) para titulares · Archivo
+   (grotesca muy legible) para el texto · JetBrains Mono para cifras, códigos y
+   etiquetas troqueladas.
+
+   PALETA: oscuro = archivo de noche (grafito azulado + latón envejecido);
+   claro = expediente de papel (manila + tinta de máquina de escribir). El
+   latón es el metal (llaves, cerraduras) y el barro el peligro. Musgo solo
+   como estado (fuga lograda).
    ========================================================================== */
+
+/* ---------- 1. tokens ---------- */
 :root{
-  --bg:#EDEBE4; --surface:#F8F7F3; --surface2:#E4E1D7; --line:#D3CFC2; --line-soft:#E0DCD0;
-  --ink:#181F23; --ink2:#5C6469; --ink3:#8A9095;
-  --brass:#9A6B12; --brass-soft:#C9992F; --brass-ghost:#EFE4C8; --on-brass:#FFFDF6;
-  --moss:#3D6A4B; --moss-ghost:#DDE8DD;
-  --clay:#9F3E2B; --clay-ghost:#F0DED8;
-  --shadow:0 1px 0 rgba(24,31,35,.05), 0 8px 24px -18px rgba(24,31,35,.45);
+  /* expediente de papel */
+  --bg:#E3DDCD; --well:#D9D2BF; --surface:#F4F0E5; --surface2:#E6E0CF;
+  --line:#C6BDA6; --line-soft:#D8D0BB;
+  --ink:#23221D; --ink2:#57554A; --ink3:#7A7768;
+  --brass:#87610F; --brass-soft:#B4842A; --brass-ghost:#EDE1C2; --on-brass:#FFFBF0;
+  --moss:#3B6A48; --moss-ghost:#DDE6D8;
+  --clay:#9B3A25; --clay-ghost:#F0DCD4;
+  --glow:rgba(255,252,242,.75);              /* luz que entra por arriba */
+  --shadow:0 1px 0 rgba(35,34,29,.04);
+  --grain:.055;
+  color-scheme:light dark;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0F1519; --surface:#171F24; --surface2:#1F2A31; --line:#2C383F; --line-soft:#232F35;
-    --ink:#E8E5DC; --ink2:#9AA5AB; --ink3:#6E7A80;
-    --brass:#D9A93F; --brass-soft:#E5BE63; --brass-ghost:#2A2417; --on-brass:#171003;
-    --moss:#74B184; --moss-ghost:#18261C;
-    --clay:#DC7A60; --clay-ghost:#2A1A15;
-    --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 26px -20px rgba(0,0,0,.9);
+    /* archivo de noche */
+    --bg:#101519; --well:#0A0E12; --surface:#1A2229; --surface2:#242E36;
+    --line:#313D45; --line-soft:#252F36;
+    --ink:#E7E3D9; --ink2:#9DA6AC; --ink3:#727D84;
+    --brass:#C89442; --brass-soft:#E2B45E; --brass-ghost:#2A2113; --on-brass:#120F08;
+    --moss:#71B083; --moss-ghost:#152419;
+    --clay:#DB7359; --clay-ghost:#2C1712;
+    --glow:rgba(226,180,94,.055);            /* el flexo sobre la mesa */
+    --shadow:0 1px 0 rgba(255,255,255,.025);
+    --grain:.05;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0F1519; --surface:#171F24; --surface2:#1F2A31; --line:#2C383F; --line-soft:#232F35;
-  --ink:#E8E5DC; --ink2:#9AA5AB; --ink3:#6E7A80;
-  --brass:#D9A93F; --brass-soft:#E5BE63; --brass-ghost:#2A2417; --on-brass:#171003;
-  --moss:#74B184; --moss-ghost:#18261C;
-  --clay:#DC7A60; --clay-ghost:#2A1A15;
-  --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 26px -20px rgba(0,0,0,.9);
+  --bg:#101519; --well:#0A0E12; --surface:#1A2229; --surface2:#242E36;
+  --line:#313D45; --line-soft:#252F36;
+  --ink:#E7E3D9; --ink2:#9DA6AC; --ink3:#727D84;
+  --brass:#C89442; --brass-soft:#E2B45E; --brass-ghost:#2A2113; --on-brass:#120F08;
+  --moss:#71B083; --moss-ghost:#152419;
+  --clay:#DB7359; --clay-ghost:#2C1712;
+  --glow:rgba(226,180,94,.055);
+  --shadow:0 1px 0 rgba(255,255,255,.025);
+  --grain:.05;
 }
+
+/* tipos de letra y medidas repetidas */
+:root{
+  --titular:"Oswald","Archivo Narrow","Arial Narrow",sans-serif;
+  --texto:"Archivo","Segoe UI",system-ui,sans-serif;
+  --dato:"JetBrains Mono",ui-monospace,"Cascadia Mono",monospace;
+  --troquel:.14em;                 /* letterspacing de las etiquetas troqueladas */
+  --paso:14px;                     /* unidad de aire entre bloques */
+}
+
+/* ---------- 2. base ---------- */
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%; scrollbar-color:var(--line) transparent}
 body{
-  margin:0; background:var(--bg); color:var(--ink);
-  font-family:"Archivo","Segoe UI",system-ui,sans-serif;
-  font-size:15px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  margin:0; color:var(--ink);
+  font-family:var(--texto); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background:radial-gradient(125% 68% at 50% -10%, var(--glow), transparent 62%), var(--bg);
+  background-attachment:fixed;
 }
-#app{max-width:1080px; margin:0 auto; padding:26px 18px 76px; display:flex; flex-direction:column; gap:22px}
-h1,h2,h3{margin:0; text-wrap:balance}
+/* grano de papel: una capa fija sobre el fondo, nunca sobre el contenido */
+body::before{
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:var(--grain);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+#app{
+  position:relative; z-index:1;
+  max-width:1140px; margin:0 auto; padding:0 20px 88px;
+  display:flex; flex-direction:column; gap:26px;
+}
+h1,h2,h3{margin:0; font-family:var(--titular); font-weight:500; text-wrap:balance}
 p{margin:0}
-a{color:var(--brass)}
+a{color:var(--brass); text-underline-offset:3px; text-decoration-thickness:1px}
+a:hover{color:var(--brass-soft)}
 [hidden]{display:none !important}
-.mono{font-family:"JetBrains Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
-.lbl{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink3); font-weight:600}
+::selection{background:var(--brass-ghost); color:var(--ink)}
+:focus-visible{outline:2px solid var(--brass-soft); outline-offset:2px}
+::-webkit-scrollbar{width:10px; height:10px}
+::-webkit-scrollbar-thumb{background:var(--line); border:3px solid transparent; background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--ink3); border:3px solid transparent; background-clip:content-box}
+
+/* piezas sueltas reutilizadas */
+.mono{font-family:var(--dato); font-variant-numeric:tabular-nums}
 .spacer{flex:1}
 .i15{width:15px !important; height:15px !important}
-.mt6{margin-top:6px}
+.mt6{margin-top:8px}
 .btnrow{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-:focus-visible{outline:2px solid var(--brass-soft); outline-offset:2px; border-radius:4px}
+/* etiqueta troquelada: la usan campos, cifras y estadísticas */
+.lbl{
+  font-family:var(--dato); font-size:9.5px; font-weight:700;
+  letter-spacing:var(--troquel); text-transform:uppercase; color:var(--ink3);
+}
+.hint{font-size:12px; line-height:1.5; color:var(--ink3)}
 @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
 
-/* ---------- cabecera ---------- */
-.top{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap}
-.brand{display:flex; align-items:center; gap:13px}
-.brand svg{width:38px; height:38px; flex:none; color:var(--brass)}
+/* ---------- 3. cabecera: portada del archivo ---------- */
+.top{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:18px; flex-wrap:wrap;
+  padding:22px 0 13px; border-bottom:1px solid var(--line); position:relative;
+}
+.top::after{                                   /* doble filete: cubierta de expediente */
+  content:""; position:absolute; left:0; right:0; bottom:-4px; height:1px; background:var(--line-soft);
+}
+.brand{display:flex; align-items:center; gap:14px}
+.brand svg{
+  width:26px; height:26px; flex:none; color:var(--brass);
+  padding:8px; box-sizing:content-box;
+  border:1px solid var(--line); background:var(--brass-ghost);
+}
 .brand h1{
-  font-family:"Big Shoulders Display","Archivo Narrow",sans-serif;
-  font-weight:800; font-size:40px; line-height:.92; text-transform:uppercase;
+  font-size:35px; line-height:.95; text-transform:uppercase; letter-spacing:.015em;
+  font-weight:600; color:var(--ink);
 }
-.brand .sub{font-size:12.5px; color:var(--ink2); margin-top:3px}
-.hgroup{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
-.chip{
-  display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line);
-  background:var(--surface); border-radius:999px; padding:5px 11px; font-size:12px; color:var(--ink2);
+.brand .sub{
+  margin-top:5px; font-family:var(--dato); font-size:10px; font-weight:700;
+  letter-spacing:var(--troquel); text-transform:uppercase; color:var(--ink3);
 }
-.chip .dot{width:7px; height:7px; border-radius:50%; background:var(--ink3); flex:none}
-.chip[data-s="ok"] .dot{background:var(--moss)}
-.chip[data-s="work"] .dot{background:var(--brass-soft); animation:pulse 1s ease-in-out infinite}
-.chip[data-s="bad"] .dot{background:var(--clay)}
-.chip[data-s="local"] .dot{background:var(--ink3)}
-@keyframes pulse{50%{opacity:.25}}
+.hgroup{display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding-bottom:3px}
 
-/* ---------- cifras ---------- */
-.stats{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
-@media (max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+/* testigo de sincronización: un piloto, no una pastilla */
+.chip{
+  display:inline-flex; align-items:center; gap:8px;
+  border:1px solid var(--line); background:var(--surface);
+  padding:6px 10px; font-family:var(--dato); font-size:9.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink2);
+}
+.chip .dot{width:6px; height:6px; background:var(--ink3); flex:none}
+.chip[data-s="ok"] .dot{background:var(--moss); box-shadow:0 0 6px var(--moss)}
+.chip[data-s="work"] .dot{background:var(--brass-soft); animation:latido 1.1s ease-in-out infinite}
+.chip[data-s="bad"] .dot{background:var(--clay); box-shadow:0 0 6px var(--clay)}
+.chip[data-s="local"] .dot{background:var(--ink3)}
+@keyframes latido{50%{opacity:.2}}
+
+/* ---------- 4. cifras: tira de instrumentos ---------- */
+.stats{
+  display:grid; grid-template-columns:repeat(4,1fr);
+  border:1px solid var(--line); background:var(--surface); box-shadow:var(--shadow);
+}
 .tile{
-  background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:13px 14px;
-  display:flex; flex-direction:column; gap:4px; box-shadow:var(--shadow);
+  position:relative; padding:14px 16px 15px;
+  display:flex; flex-direction:column; gap:3px; min-width:0;
 }
+.tile + .tile{border-left:1px solid var(--line-soft)}
 .tile .v{
-  font-family:"Big Shoulders Display","Archivo Narrow",sans-serif; font-weight:700;
-  font-size:34px; line-height:1; font-variant-numeric:tabular-nums;
+  font-family:var(--titular); font-weight:600; font-size:38px; line-height:1;
+  letter-spacing:-.01em; font-variant-numeric:tabular-nums; color:var(--ink);
+  overflow-wrap:anywhere;
 }
-.tile .u{font-size:11.5px; color:var(--ink2)}
+.tile .u{font-size:11.5px; color:var(--ink2); line-height:1.35}
+.tile.accent{background:linear-gradient(180deg, var(--brass-ghost), transparent 78%)}
+.tile.accent::before{content:""; position:absolute; inset:0 auto 0 0; width:2px; background:var(--brass)}
 .tile.accent .v{color:var(--brass)}
 
-/* ---------- pestañas y barra ---------- */
-.tabs{display:flex; gap:2px; border-bottom:1px solid var(--line); margin-bottom:-6px; overflow-x:auto}
+/* ---------- 5. pestañas: separadores de carpeta ---------- */
+.tabs{
+  display:flex; gap:3px; border-bottom:1px solid var(--line);
+  margin-bottom:calc(var(--paso) * -1); overflow-x:auto; scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none}
 .tab{
-  appearance:none; background:none; border:0; border-bottom:2px solid transparent;
-  padding:9px 14px 11px; font:inherit; font-weight:600; font-size:13.5px; color:var(--ink2);
-  cursor:pointer; white-space:nowrap;
+  appearance:none; cursor:pointer; white-space:nowrap; position:relative; bottom:-1px;
+  background:transparent; border:1px solid transparent; border-bottom:0;
+  padding:10px 15px 11px; font:inherit; font-family:var(--titular);
+  font-size:15px; font-weight:500; letter-spacing:.05em; text-transform:uppercase; color:var(--ink3);
+  transition:color .14s ease, background-color .14s ease;
 }
-.tab:hover{color:var(--ink)}
-.tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--brass)}
-.tab .n{font-size:11px; color:var(--ink3); margin-left:6px; font-family:"JetBrains Mono",monospace}
-.toolbar{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.tab:hover{color:var(--ink); background:var(--surface2)}
+.tab[aria-selected="true"]{
+  color:var(--ink); background:var(--surface);
+  border-color:var(--line); border-bottom:1px solid var(--surface);
+  box-shadow:inset 0 2px 0 var(--brass);
+}
+.tab .n{
+  margin-left:8px; font-family:var(--dato); font-size:10px; font-weight:700;
+  color:var(--ink3); font-variant-numeric:tabular-nums;
+}
+.tab[aria-selected="true"] .n{color:var(--brass)}
+
+/* ---------- 6. barra de filtros ---------- */
+.toolbar{display:flex; gap:9px; align-items:center; flex-wrap:wrap}
 .search{
-  flex:1 1 220px; min-width:0; display:flex; align-items:center; gap:8px;
-  background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:0 10px;
+  flex:1 1 240px; min-width:0; display:flex; align-items:center; gap:9px;
+  background:var(--well); border:1px solid var(--line); padding:0 11px;
+  transition:border-color .14s ease;
 }
-.search svg{width:15px; height:15px; color:var(--ink3); flex:none}
-.search input{flex:1; min-width:0; border:0; background:none; font:inherit; font-size:14px; color:var(--ink); padding:9px 0}
+.search:focus-within{border-color:var(--brass-soft); box-shadow:inset 0 0 0 1px var(--brass-ghost)}
+.search svg{width:14px; height:14px; color:var(--ink3); flex:none}
+.search input{
+  flex:1; min-width:0; border:0; background:none; font:inherit; font-size:14px;
+  color:var(--ink); padding:10px 0;
+}
+.search input::placeholder{color:var(--ink3)}
 .search input:focus{outline:none}
-.who-filter{display:flex; gap:6px; flex-wrap:wrap}
-.pill{
-  appearance:none; font:inherit; font-size:12.5px; cursor:pointer;
-  border:1px solid var(--line); background:var(--surface); color:var(--ink2);
-  border-radius:999px; padding:6px 11px; display:inline-flex; align-items:center; gap:6px;
-}
-.pill:hover{border-color:var(--ink3)}
-.pill[aria-pressed="true"]{background:var(--brass-ghost); border-color:var(--brass-soft); color:var(--ink)}
 select.sel{
   font:inherit; font-size:12.5px; color:var(--ink2); background:var(--surface);
-  border:1px solid var(--line); border-radius:8px; padding:7px 9px;
+  border:1px solid var(--line); padding:9px 10px; max-width:100%;
+  transition:border-color .14s ease, color .14s ease;
 }
-.btn{
-  appearance:none; font:inherit; font-weight:600; font-size:13.5px; cursor:pointer;
-  border:1px solid var(--line); background:var(--surface); color:var(--ink);
-  border-radius:8px; padding:8px 14px; display:inline-flex; align-items:center; gap:7px;
+select.sel:hover{border-color:var(--ink3); color:var(--ink)}
+.who-filter{display:flex; gap:6px; flex-wrap:wrap}
+.pill{
+  appearance:none; font:inherit; font-size:12.5px; cursor:pointer; color:var(--ink2);
+  border:1px solid var(--line); background:var(--surface);
+  padding:6px 11px 6px 7px; display:inline-flex; align-items:center; gap:7px;
+  transition:border-color .14s ease, color .14s ease, background-color .14s ease;
 }
-.btn:hover{border-color:var(--ink3)}
-.btn:disabled{opacity:.55; cursor:default}
-.btn.primary{background:var(--brass); border-color:var(--brass); color:var(--on-brass)}
-.btn.primary:hover{background:var(--brass-soft); border-color:var(--brass-soft)}
-.btn.ghost{background:none; border-color:transparent; color:var(--ink2); padding:7px 9px}
-.btn.ghost:hover{color:var(--ink); background:var(--surface2)}
-.btn.danger{color:var(--clay); border-color:var(--clay-ghost); background:var(--clay-ghost)}
+.pill:hover{border-color:var(--ink3); color:var(--ink)}
+.pill[aria-pressed="true"]{
+  background:var(--brass-ghost); border-color:var(--brass-soft); color:var(--ink); font-weight:600;
+}
 
-/* ---------- tarjetas ---------- */
-.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(304px,1fr)); gap:12px}
+/* ---------- 7. botones: chapa y filete ---------- */
+.btn{
+  appearance:none; cursor:pointer; font-family:var(--texto); font-size:11.5px; font-weight:700;
+  letter-spacing:.07em; text-transform:uppercase;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  padding:9px 14px; display:inline-flex; align-items:center; gap:8px;
+  transition:border-color .14s ease, background-color .14s ease, color .14s ease, transform .06s ease;
+}
+.btn:hover{border-color:var(--ink3); background:var(--surface2)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5; cursor:default; transform:none}
+.btn svg{width:15px; height:15px; flex:none}
+.btn.primary{
+  background:var(--brass); border-color:var(--brass); color:var(--on-brass);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+}
+.btn.primary:hover{background:var(--brass-soft); border-color:var(--brass-soft)}
+.btn.ghost{
+  background:none; border-color:transparent; color:var(--ink2);
+  padding:8px 9px; letter-spacing:.05em;
+}
+.btn.ghost:hover{color:var(--ink); background:var(--surface2); border-color:var(--line-soft)}
+.btn.danger{color:var(--clay); border-color:var(--clay-ghost); background:var(--clay-ghost)}
+.btn.danger:hover{border-color:var(--clay); background:var(--clay-ghost); color:var(--clay)}
+.iconlink{
+  display:inline-grid; place-items:center; width:30px; height:30px; color:var(--ink2);
+  border:1px solid transparent; transition:color .14s ease, background-color .14s ease, border-color .14s ease;
+}
+.iconlink:hover{background:var(--surface2); border-color:var(--line-soft); color:var(--brass)}
+.iconlink svg{width:15px; height:15px}
+
+/* ---------- 8. recuento: rótulo con filete ---------- */
+.count{
+  display:flex; align-items:center; gap:12px; margin-top:-9px;
+  font-family:var(--dato); font-size:9.5px; font-weight:700;
+  letter-spacing:var(--troquel); text-transform:uppercase; color:var(--ink3);
+}
+.count::after{content:""; flex:1; height:1px; background:var(--line-soft)}
+
+/* ---------- 9. la ficha de cada sala ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(324px,1fr)); gap:12px; align-items:start}
 .card{
-  background:var(--surface); border:1px solid var(--line); border-radius:12px;
-  padding:14px 15px 12px; display:flex; flex-direction:column; gap:9px; box-shadow:var(--shadow);
+  position:relative; background:var(--surface); box-shadow:var(--shadow);
+  border:1px solid var(--line); border-left:3px solid var(--line);
+  padding:13px 15px 11px; display:flex; flex-direction:column; gap:10px;
+  transition:border-left-color .16s ease, border-color .16s ease;
 }
-.card.wishlist{background:transparent; border-style:dashed; box-shadow:none}
-.card .crown{display:flex; align-items:center; justify-content:space-between; gap:10px}
-.ord{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink3); letter-spacing:.06em}
-.badge{font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:4px 8px; border-radius:5px; white-space:nowrap}
-.badge.win{background:var(--moss-ghost); color:var(--moss)}
-.badge.lose{background:var(--clay-ghost); color:var(--clay)}
-.badge.wish,.badge.unk{background:var(--surface2); color:var(--ink2)}
-/* cuerpo de la tarjeta: el texto a la izquierda y la foto en el hueco derecho */
-.card .body{display:flex; align-items:flex-start; gap:11px}
-.card .text{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px}
-.card .shot{
-  width:84px; height:84px; flex:none; border-radius:9px; object-fit:cover;
-  border:1px solid var(--line-soft); background:var(--surface2);
+.card:hover{border-left-color:var(--brass)}
+/* corchete de prueba en la esquina de abajo a la derecha */
+.card::after{
+  content:""; position:absolute; right:5px; bottom:5px; width:9px; height:9px;
+  border-right:1px solid var(--line); border-bottom:1px solid var(--line);
+  transition:border-color .16s ease;
 }
+.card:hover::after{border-color:var(--brass-soft)}
+.card.wishlist{
+  background:transparent;
+  background:color-mix(in srgb, var(--surface) 45%, transparent);
+  border-style:dashed; border-left-style:solid;
+}
+
+/* cabecera de ficha: nº de expediente + sello */
+.card .crown{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding-bottom:9px; border-bottom:1px solid var(--line-soft);
+}
+.card.wishlist .crown{justify-content:flex-end}
+.card.wishlist .ord{display:none}           /* el sello ya lo dice */
+/* en las no jugadas el pie solo lleva acciones: se alinean con el texto, no
+   colgando a la derecha de una banda vacía */
+.card.wishlist .foot{padding-top:8px}
+.card.wishlist .foot .spacer{display:none}
+.ord{
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:var(--dato); font-size:9.5px; font-weight:700;
+  letter-spacing:var(--troquel); text-transform:uppercase; color:var(--ink3);
+}
+.ord::before{content:""; width:12px; height:1px; background:var(--line); flex:none}
+.badge{
+  font-family:var(--dato); font-size:9px; font-weight:700;
+  letter-spacing:.13em; text-transform:uppercase; white-space:nowrap;
+  padding:4px 7px; border:1px solid; line-height:1;
+}
+.badge.win{background:var(--moss-ghost); color:var(--moss); border-color:var(--moss); border-color:color-mix(in srgb, var(--moss) 45%, transparent)}
+.badge.lose{background:var(--clay-ghost); color:var(--clay); border-color:var(--clay); border-color:color-mix(in srgb, var(--clay) 45%, transparent)}
+.badge.unk{background:transparent; color:var(--ink2); border-color:var(--line)}
+.badge.wish{background:transparent; color:var(--ink3); border-style:dashed; border-color:var(--line)}
+
+/* cuerpo: texto a la izquierda, prueba fotográfica a la derecha */
+.card .body{display:flex; align-items:flex-start; gap:12px}
+.card .text{flex:1; min-width:0; display:flex; flex-direction:column; gap:7px}
 .card h3{
-  font-family:"Big Shoulders Display","Archivo Narrow",sans-serif; font-weight:700;
-  font-size:27px; line-height:1; text-transform:uppercase; overflow-wrap:break-word;
+  font-size:23px; line-height:1.04; text-transform:uppercase; font-weight:600;
+  letter-spacing:.005em; overflow-wrap:break-word;
 }
-.card .meta{font-size:12.5px; color:var(--ink2)}
+.card .meta{
+  font-family:var(--dato); font-size:10.5px; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--ink2);
+}
+.card .shot{
+  width:82px; height:82px; flex:none; object-fit:cover; border-radius:2px;
+  border:1px solid var(--line); background:var(--surface2);
+  filter:saturate(.72) contrast(1.04);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.25);
+  transition:filter .22s ease;
+}
+.card:hover .shot{filter:saturate(1) contrast(1)}
+/* las llaves de la valoración */
 .rate{display:flex; gap:3px; align-items:center}
-.rate svg{width:14px; height:14px; color:var(--line)}
-.rate svg.on{color:var(--brass-soft)}
-.rate .nn{font-size:11px; color:var(--ink3); margin-left:4px; font-family:"JetBrains Mono",monospace}
-.notes{font-size:13px; color:var(--ink2); border-left:2px solid var(--line-soft); padding-left:9px}
+.rate svg{width:13px; height:13px; color:var(--line)}
+.rate svg.on{color:var(--brass)}
+.rate .nn{
+  margin-left:5px; font-family:var(--dato); font-size:9.5px; font-weight:700;
+  letter-spacing:.08em; color:var(--ink3);
+}
+/* la nota, escrita a máquina sobre papel pautado */
+.notes{
+  font-size:12.5px; line-height:1.5; color:var(--ink2);
+  border-left:2px solid var(--brass-ghost); padding:1px 0 1px 10px;
+  background:repeating-linear-gradient(180deg,
+    transparent 0, transparent 18px,
+    color-mix(in srgb, var(--ink3) 12%, transparent) 18px,
+    color-mix(in srgb, var(--ink3) 12%, transparent) 19px);
+}
+
+/* pie de ficha */
 .card .foot{
-  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  display:flex; align-items:center; gap:8px 10px; flex-wrap:wrap;
   border-top:1px solid var(--line-soft); padding-top:10px; margin-top:auto;
 }
-.price{font-family:"JetBrains Mono",monospace; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums}
-.price small{font-weight:400; color:var(--ink2); font-size:11.5px}
-.when{font-family:"JetBrains Mono",monospace; font-size:11.5px; color:var(--ink3)}
+.price{font-family:var(--dato); font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums}
+.price small{font-weight:400; color:var(--ink3); font-size:10px; letter-spacing:.02em}
+.when{
+  display:inline-flex; align-items:center; gap:10px;
+  font-family:var(--dato); font-size:10px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--ink3);
+}
+.when::before{content:""; width:1px; height:10px; background:var(--line); flex:none}
+.card .acts{display:flex; gap:2px; align-items:center}
+.card .acts .txt-btn{font-size:11px; letter-spacing:.07em}
+
+/* fichas de identificación de la cuadrilla */
 .who{display:flex; align-items:center}
 .av{
-  width:23px; height:23px; border-radius:50%; display:grid; place-items:center;
-  font-size:10px; font-weight:700; color:#FFFDF6; border:1.5px solid var(--surface);
-  margin-left:-6px; flex:none;
+  width:24px; height:24px; border-radius:2px; display:grid; place-items:center;
+  font-family:var(--dato); font-size:9px; font-weight:700; letter-spacing:.02em;
+  color:#FFFBF0; border:1px solid var(--surface); margin-left:-5px; flex:none;
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent);
 }
 .av:first-child{margin-left:0}
-.av.off{background:var(--surface2) !important; color:var(--ink3)}
-.av.mini{width:17px; height:17px; font-size:8.5px; border:0; margin:0}
-.av.big{width:30px; height:30px; font-size:11.5px; border:0; margin:0}
-.iconlink{display:inline-grid; place-items:center; width:28px; height:28px; border-radius:7px; color:var(--ink2)}
-.iconlink:hover{background:var(--surface2); color:var(--brass)}
-.iconlink svg{width:15px; height:15px}
-.card .acts{display:flex; gap:2px; align-items:center}
+.av.off{background:var(--surface2) !important; color:var(--ink3); box-shadow:0 0 0 1px var(--line)}
+.av.mini{width:18px; height:18px; font-size:8px; border:0; margin:0; box-shadow:none}
+.av.big{width:34px; height:34px; font-size:11px; border:0; margin:0; border-radius:2px}
 
-/* ---------- paneles y vacíos ---------- */
-.panels{display:flex; flex-direction:column; gap:12px}
+/* ---------- 10. paneles: hojas del expediente ---------- */
+.panels{display:flex; flex-direction:column; gap:14px}
 .panel{
-  background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:20px;
-  display:flex; flex-direction:column; gap:13px; box-shadow:var(--shadow);
+  background:var(--surface); border:1px solid var(--line); border-top:2px solid var(--line);
+  padding:20px 22px 22px; display:flex; flex-direction:column; gap:14px; box-shadow:var(--shadow);
 }
-.panel h2{font-family:"Big Shoulders Display","Archivo Narrow",sans-serif; font-weight:700; font-size:26px; text-transform:uppercase; line-height:1}
-.panel p{font-size:13.5px; color:var(--ink2); max-width:66ch}
+.panel h2{
+  display:flex; align-items:center; gap:10px;
+  font-size:25px; line-height:1; text-transform:uppercase; letter-spacing:.02em; font-weight:600;
+}
+.panel h2::before{content:""; width:7px; height:7px; background:var(--brass); flex:none}
+.panel p{font-size:13.5px; color:var(--ink2); max-width:68ch}
 .panel em{font-style:normal; color:var(--ink); font-weight:600}
+.panel .hint{max-width:68ch}
 .urlbox{
-  background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:9px 10px;
-  font-size:11.5px; color:var(--ink2) !important; overflow-wrap:anywhere;
+  max-width:820px;
+  background:var(--well); border:1px solid var(--line); border-left:2px solid var(--brass);
+  padding:10px 12px; font-family:var(--dato); font-size:11px;
+  color:var(--ink2) !important; overflow-wrap:anywhere;
 }
-.namegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px}
+.panel .field{max-width:620px}                 /* los campos no cruzan el panel entero */
+.namegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr)); gap:12px}
+
+/* ---------- 11. sin registros ---------- */
 .empty{
-  border:1px dashed var(--line); border-radius:12px; padding:34px 22px;
-  display:flex; flex-direction:column; align-items:center; gap:12px; color:var(--ink2); text-align:center;
+  position:relative; border:1px dashed var(--line); background:var(--surface);
+  padding:44px 26px; display:flex; flex-direction:column; align-items:center; gap:13px;
+  color:var(--ink2); text-align:center;
 }
-.empty h3{font-family:"Big Shoulders Display",sans-serif; font-size:24px; text-transform:uppercase; color:var(--ink)}
-.empty p{font-size:13.5px; max-width:44ch}
-.hint{font-size:11.5px; color:var(--ink3)}
+.empty::before, .empty::after{                 /* corchetes de expediente vacío */
+  content:""; position:absolute; width:16px; height:16px; border:1px solid var(--brass-soft); opacity:.5;
+}
+.empty::before{top:8px; left:8px; border-right:0; border-bottom:0}
+.empty::after{bottom:8px; right:8px; border-left:0; border-top:0}
+.empty h3{
+  font-size:23px; text-transform:uppercase; color:var(--ink); letter-spacing:.03em; font-weight:600;
+}
+.empty p{font-size:13.5px; max-width:46ch}
 
-/* ---------- cuadrilla ---------- */
-.plist{display:flex; flex-direction:column; gap:8px}
+/* ---------- 12. la cuadrilla: listado, no tarjetas ---------- */
+.plist{
+  display:flex; flex-direction:column;
+  border:1px solid var(--line); background:var(--surface); box-shadow:var(--shadow);
+}
 .prow{
-  display:flex; align-items:center; gap:12px; background:var(--surface);
-  border:1px solid var(--line); border-radius:10px; padding:11px 13px; flex-wrap:wrap;
+  display:flex; align-items:center; gap:14px; padding:12px 16px; flex-wrap:wrap;
+  transition:background-color .14s ease;
 }
-.prow .nm{flex:1 1 150px; min-width:0}
-.prow .stat{display:flex; flex-direction:column; min-width:76px}
-.prow .stat b{font-family:"JetBrains Mono",monospace; font-size:15px; font-variant-numeric:tabular-nums}
-.bar{height:5px; border-radius:3px; background:var(--surface2); overflow:hidden; max-width:190px; flex:1 1 90px}
-.bar i{display:block; height:100%; background:var(--brass-soft)}
+.prow + .prow{border-top:1px solid var(--line-soft)}
+.prow:hover{background:var(--surface2); background:color-mix(in srgb, var(--surface2) 55%, transparent)}
+.prow .nm{flex:1 1 160px; min-width:0}
+.prow .nm input.txt{
+  border-color:transparent; background:transparent; padding:5px 7px;
+  font-family:var(--titular); font-size:19px; font-weight:500; letter-spacing:.02em;
+}
+.prow .nm input.txt:hover{border-color:var(--line-soft)}
+.prow .nm input.txt:focus{background:var(--well); border-color:var(--brass-soft)}
+.prow .stat{display:flex; flex-direction:column; gap:2px; min-width:74px}
+.prow .stat b{font-family:var(--dato); font-size:14px; font-variant-numeric:tabular-nums; font-weight:700}
+/* medidor con muescas, como un instrumento */
+.bar{
+  height:8px; flex:1 1 90px; max-width:190px; background:var(--well);
+  border:1px solid var(--line-soft); padding:1px;
+}
+.bar i{
+  display:block; height:100%; background:var(--brass); background:
+    repeating-linear-gradient(90deg, var(--brass) 0 3px, color-mix(in srgb, var(--brass) 55%, transparent) 3px 5px);
+}
+.plist .btnrow{padding:12px 16px; border-top:1px solid var(--line-soft)}
+.plist > .hint{padding:0 16px 15px}
 
-/* ---------- campos ---------- */
-input.txt,textarea.txt,select.txt{
-  width:100%; font:inherit; font-size:15px; color:var(--ink); background:var(--bg);
-  border:1px solid var(--line); border-radius:8px; padding:9px 10px;
-}
-input.txt:focus,textarea.txt:focus,select.txt:focus{outline:2px solid var(--brass-soft); outline-offset:-1px; border-color:var(--brass-soft)}
-textarea.txt{resize:vertical; min-height:64px}
-.field{display:flex; flex-direction:column; gap:5px}
+/* ---------- 13. campos ---------- */
+.field{display:flex; flex-direction:column; gap:6px}
 .field .lbl{color:var(--ink2)}
-.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-@media (max-width:560px){.row2{grid-template-columns:1fr}}
-
-/* ---------- diálogo ---------- */
-dialog{
-  border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--ink);
-  padding:0; width:min(620px,calc(100vw - 24px)); max-height:calc(100vh - 36px);
-  box-shadow:0 30px 70px -30px rgba(0,0,0,.6);
+.lbl .opt{font-weight:400; text-transform:none; letter-spacing:0; color:var(--ink3)}
+input.txt,textarea.txt,select.txt{
+  width:100%; font:inherit; font-size:14.5px; color:var(--ink); background:var(--well);
+  border:1px solid var(--line); border-radius:0; padding:10px 11px;
+  transition:border-color .14s ease, box-shadow .14s ease;
 }
-dialog::backdrop{background:rgba(8,12,14,.55)}
-dialog form{display:flex; flex-direction:column; max-height:calc(100vh - 36px)}
-.dh{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 17px; border-bottom:1px solid var(--line)}
-.dh h2{font-family:"Big Shoulders Display",sans-serif; font-size:25px; text-transform:uppercase; line-height:1}
-.db{padding:16px 17px; display:flex; flex-direction:column; gap:14px; overflow:auto}
-.df{display:flex; align-items:center; gap:10px; padding:12px 17px; border-top:1px solid var(--line); flex-wrap:wrap}
-.seg{display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; width:fit-content; max-width:100%}
-.seg button{appearance:none; border:0; background:var(--bg); font:inherit; font-size:13px; color:var(--ink2); padding:8px 12px; cursor:pointer}
-.seg button+button{border-left:1px solid var(--line)}
-.seg button[aria-pressed="true"]{background:var(--brass-ghost); color:var(--ink); font-weight:600}
-.ratepick{display:flex; gap:4px; align-items:center}
-.ratepick button{appearance:none; border:0; background:none; padding:3px; cursor:pointer; line-height:0}
-.ratepick svg{width:22px; height:22px; color:var(--line)}
-.ratepick svg.on{color:var(--brass-soft)}
-
-/* ---------- avisos ---------- */
-#toast{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); display:flex; flex-direction:column; gap:8px; align-items:center; z-index:99; pointer-events:none}
-#toast div{
-  background:var(--ink); color:var(--bg); font-size:13px; font-weight:500;
-  padding:9px 14px; border-radius:999px; box-shadow:0 12px 30px -12px rgba(0,0,0,.6);
-  max-width:min(420px,92vw); text-align:center;
+input.txt::placeholder,textarea.txt::placeholder{color:var(--ink3)}
+input.txt:hover,textarea.txt:hover{border-color:var(--ink3)}
+input.txt:focus,textarea.txt:focus,select.txt:focus{
+  outline:none; border-color:var(--brass-soft); box-shadow:inset 0 0 0 1px var(--brass-ghost);
 }
+textarea.txt{resize:vertical; min-height:70px; line-height:1.5}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
 
-/* ---------- reparto del precio y recuentos ---------- */
+/* interruptor de dos o tres posiciones */
+.seg{display:flex; border:1px solid var(--line); width:fit-content; max-width:100%; background:var(--well)}
+.seg button{
+  appearance:none; border:0; background:transparent; font:inherit; font-size:12px;
+  font-weight:600; letter-spacing:.03em; color:var(--ink2); padding:9px 13px; cursor:pointer;
+  transition:color .14s ease, background-color .14s ease;
+}
+.seg button:hover{color:var(--ink); background:var(--surface2)}
+.seg button + button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{
+  background:var(--brass-ghost); color:var(--ink); box-shadow:inset 0 2px 0 var(--brass);
+}
+/* elegir la nota: cinco llaves */
+.ratepick{display:flex; gap:5px; align-items:center; padding:3px 0}
+.ratepick button{appearance:none; border:0; background:none; padding:2px; cursor:pointer; line-height:0}
+.ratepick svg{width:24px; height:24px; color:var(--line); transition:color .14s ease, transform .14s ease}
+.ratepick button:hover svg{color:var(--brass-soft); transform:translateY(-1px)}
+.ratepick svg.on{color:var(--brass)}
 .reparto{
-  margin-top:6px; font-family:"JetBrains Mono",monospace; font-size:12.5px; font-weight:700;
-  color:var(--brass); font-variant-numeric:tabular-nums;
+  margin-top:8px; font-family:var(--dato); font-size:12px; font-weight:700;
+  color:var(--brass); font-variant-numeric:tabular-nums; letter-spacing:.01em;
 }
-.reparto.hint{font-weight:400; color:var(--ink3)}
-.lbl .opt{font-style:normal; font-weight:400; text-transform:none; letter-spacing:0; color:var(--ink3)}
-.count{margin-top:-8px}
+.reparto.hint{font-weight:400; color:var(--ink3); letter-spacing:0}
 
-/* cualquier icono dentro de un botón lleva tamaño: si no, el svg se queda sin
-   dimensiones y no se ve (le pasó al lápiz de editar) */
-.btn svg{width:15px; height:15px; flex:none}
-.card .acts .txt-btn{font-size:12.5px}
+/* ---------- 14. ficha en el diálogo ---------- */
+dialog{
+  border:1px solid var(--line); border-top:2px solid var(--brass); border-radius:0;
+  background:var(--surface); color:var(--ink); padding:0;
+  width:min(660px,calc(100vw - 28px)); max-height:calc(100vh - 40px);
+  box-shadow:0 40px 80px -40px rgba(0,0,0,.7);
+}
+dialog::backdrop{background:rgba(6,9,11,.62); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px)}
+dialog[open]{animation:abre .18s ease-out}
+@keyframes abre{from{opacity:0; transform:translateY(8px)}}
+dialog form{display:flex; flex-direction:column; max-height:calc(100vh - 40px)}
+.dh{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:16px 20px 14px; border-bottom:1px solid var(--line); background:var(--surface);
+}
+.dh h2{font-size:25px; text-transform:uppercase; line-height:1; letter-spacing:.02em; font-weight:600}
+.db{
+  padding:20px; display:flex; flex-direction:column; gap:16px; overflow:auto;
+  background:var(--well);
+  background:color-mix(in srgb, var(--bg) 40%, var(--surface));
+  border-bottom:1px solid var(--line);
+}
+.df{display:flex; align-items:center; gap:10px; padding:14px 20px; flex-wrap:wrap}
+.df .hint{margin-left:auto; text-align:right}
+
+/* ---------- 15. avisos ---------- */
+#toast{
+  position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:99;
+  display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none;
+}
+#toast div{
+  background:var(--surface); color:var(--ink); border:1px solid var(--line);
+  border-left:3px solid var(--brass); font-size:13px; padding:10px 15px;
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.6);
+  max-width:min(440px,92vw); animation:sube .2s ease-out;
+}
+@keyframes sube{from{opacity:0; transform:translateY(10px)}}
+
+/* ---------- 16. tablet ---------- */
+@media (max-width:900px){
+  #app{gap:22px; padding:0 16px 80px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .tile:nth-child(2n+1){border-left:0}
+  .tile:nth-child(n+3){border-top:1px solid var(--line-soft)}
+  .brand h1{font-size:31px}
+  .tile .v{font-size:34px}
+}
+
+/* ---------- 17. móvil: se replantea, no se encoge ---------- */
+@media (max-width:640px){
+  body{font-size:14.5px}
+  #app{gap:18px; padding:0 13px 72px}
+  .top{align-items:flex-start; padding:16px 0 12px}
+  .brand{gap:11px}
+  .brand svg{width:20px; height:20px; padding:7px}
+  .brand h1{font-size:26px}
+  .hgroup{width:100%; justify-content:flex-start}
+  /* las cifras, en dos columnas apretadas y con el número mandando */
+  .tile{padding:11px 12px 12px}
+  .tile .v{font-size:29px}
+  .tile .u{font-size:10.5px}
+  .tabs{-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);
+        mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  .tab{padding:9px 12px 10px; font-size:14px}
+  /* el buscador ocupa su propia línea; los selectores se reparten la siguiente */
+  .toolbar{gap:8px}
+  .search{flex:1 1 100%; order:1}
+  .who-filter{order:2; flex:1 1 100%}
+  select.sel{order:3; flex:1 1 46%; min-width:0}
+  .toolbar .spacer{display:none}
+  .toolbar .btn.primary{order:4; flex:1 1 100%; justify-content:center; padding:11px 14px}
+  .count{margin-top:-6px}
+  .grid{grid-template-columns:1fr; gap:10px}
+  .card{padding:12px 13px 10px}
+  .card h3{font-size:21px}
+  .card .shot{width:66px; height:66px}
+  .panel{padding:17px 16px 18px}
+  .panel h2, .dh h2{font-size:22px}
+  .row2{grid-template-columns:1fr; gap:12px}
+  /* la cuadrilla pasa a dos alturas: identidad arriba, cifras abajo */
+  .prow{gap:10px 12px; padding:13px 13px}
+  .prow .nm{flex:1 1 auto; order:1}
+  .prow .av.big{order:0}
+  .prow .bar{order:3; flex:1 1 100%; max-width:none}
+  .prow .stat{order:4; flex:1 1 0; min-width:64px}
+  .prow > .btn.ghost{order:2; flex:none}
+  .prow .bar{height:6px}
+  /* el diálogo, a pantalla completa */
+  dialog{
+    width:100vw; max-width:100vw; max-height:100dvh; height:100dvh;
+    margin:0; border:0; border-top:2px solid var(--brass);
+  }
+  dialog form{max-height:100dvh}
+  .dh{position:sticky; top:0; z-index:2; padding:14px 15px 12px}
+  .db{padding:15px}
+  .df{padding:12px 15px; padding-bottom:max(12px, env(safe-area-inset-bottom))}
+  .df .btn.primary{flex:1 1 100%; justify-content:center}
+  .df .hint{flex:1 1 100%; margin-left:0; text-align:left; order:9}
+  #toast{left:12px; right:12px; bottom:14px; transform:none}
+  #toast div{max-width:none; width:100%}
+}
+
+/* ---------- 18. pantallas anchas: el archivo respira ---------- */
+@media (min-width:1200px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+  .tile{padding:16px 18px 17px}
+}
