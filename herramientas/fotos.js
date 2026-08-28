@@ -12,7 +12,7 @@
    es cuál vuestra, remata las que no se cazan ni por nombre. */
 const fs = require('fs');
 const { bajar, espera } = require('./bajar');
-const cotejo = require('./cotejo');
+const cotejo = require('../cotejo');
 
 const args = process.argv.slice(2);
 const REHACER = args.indexOf('--rehacer') !== -1;

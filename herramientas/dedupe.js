@@ -3,7 +3,7 @@
 
    Quién decide si dos nombres son la misma sala: cotejo.js. */
 const fs = require('fs');
-const cotejo = require('./cotejo');
+const cotejo = require('../cotejo');
 
 const cat = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
 const mio = JSON.parse(fs.readFileSync(process.argv[3], 'utf8'));

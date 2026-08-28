@@ -112,6 +112,14 @@ guardan en el móvil y se suben a la hoja en cuanto vuelve la conexión.
   Con buscador, filtro por ciudad y orden por nombre/ciudad/empresa. El botón ✓ abre la
   ficha para apuntar día, precio y quién fue.
 - **La cuadrilla**: nombres editables y, por cada uno, salas, % de fugas y gasto acumulado.
+- **Duplicadas**: cruza todas las salas del cuaderno entre sí y saca las parejas que podrían
+  ser la misma sala apuntada dos veces, cara a cara y con sus datos, para decidir a ojo. Las
+  que da por seguras van marcadas en rojo; el resto solo se parecen. **Antes de quitar
+  ninguna, mira los datos**: a veces son dos partidas distintas de la misma sala (fechas y
+  gente diferentes), y entonces lo que interesa es pasar los datos a una y quitar la otra.
+  El ✕ pide dos toques. Usa el mismo cotejo que el catálogo ([`cotejo.js`](cotejo.js)), así
+  que no se traga los espacios, los acentos ni las erratas, y no junta salas de ciudades
+  distintas aunque se llamen igual.
 
 Cualquier sala jugada se edita con el lápiz de su tarjeta. Si se marcó por error, dentro de la
 ficha hay **Devolver a no jugadas**: la saca de jugadas y limpia día, precio, personas,
@@ -276,6 +284,7 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | `index.html` | La página. |
 | `styles.css` | Todo el diseño: identidad de expediente, tema claro (papel) y oscuro (archivo de noche) automáticos. Las reglas de la identidad están escritas en su cabecera. |
 | `store.js` | Estado, guardado local y sincronización con la hoja. |
+| `cotejo.js` | Cuándo dos nombres son la misma sala. Lo comparten las herramientas y la pestaña de duplicadas: una sola verdad. |
 | `app.js` | Interfaz: pintado y eventos. |
 | `config.js` | URL de la hoja, opcional, para todo el repositorio. |
 | `sw.js`, `manifest.webmanifest`, `icons/` | Lo que la convierte en app instalable y sin conexión. |

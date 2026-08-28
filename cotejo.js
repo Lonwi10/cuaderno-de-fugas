@@ -1,6 +1,9 @@
 /* Cotejo de nombres de salas: decide si dos fichas son la misma sala.
-   Lo usan dedupe.js (para no duplicar el catálogo) y fotos.js (para saber qué
-   ficha de escaperoomlover corresponde a una sala vuestra).
+   Lo usan las herramientas (dedupe.js para no duplicar el catálogo, fotos.js y
+   pegar-fotos.js para saber qué ficha de la web es cuál sala vuestra) y la
+   propia app, en la pestaña de duplicadas. Por eso vive en la raíz y vale para
+   node y para el navegador: una sola verdad sobre cuándo dos nombres son la
+   misma sala.
 
    La misma sala se apunta de mil maneras, y ninguna coincide letra a letra:
      "11 S"                            ↔ "11S"                  (los espacios)
@@ -13,6 +16,11 @@
      · las claves de sus trozos (lo de antes y después de ":" o de la coma)
      · las piezas, para comparar por conjuntos de palabras
    y se mide el parecido, que es lo que salva las erratas.                   */
+
+(function (raiz, fabrica) {
+  if (typeof module === 'object' && module.exports) module.exports = fabrica();
+  else raiz.Cotejo = fabrica();
+})(typeof self !== 'undefined' ? self : this, function () {
 
 const ARTICULOS = new Set(['el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
   'de', 'del', 'y', 'e', 'al', 'a', 'en', 'the', 'of']);
@@ -111,59 +119,120 @@ function ficha(sala) {
     sala: sala,
     clave: clave(sala.name),
     claves: claves(sala.name),
+    largos: claves(sala.name).map(k => k.length),
     piezas: piezas(sala.name),
+    ciudad: limpia(sala.city),
     casa: casa(sala.company),
+    casaPegada: pega(casa(sala.company)),   // se compara 45.000 veces: mejor hecha
     cifras: cifras(sala.name)
   };
 }
 const fichas = salas => salas.map(ficha);
 
-/** La ficha de `lista` que mejor cuadra con `sala`, ya con el veredicto:
+/** Compara dos fichas ya preparadas y devuelve el veredicto:
  *  · seguro → es la misma sala, se puede actuar sin preguntar
- *  · dudoso → puede serlo; hay que mirarlo a ojo
- *  Devuelve null si la lista está vacía. */
-function mejor(sala, lista) {
-  const yo = ficha(sala);
-  let top = null;
-  lista.forEach(otra => {
-    /* la empresa de una puede venir metida en el nombre de la otra:
-       "Final Code: Bermudas" es de vuestra "Final Code" */
-    const empresaEnNombre = !!((otra.casa && yo.clave.indexOf(pega(otra.casa)) !== -1) ||
-      (yo.casa && otra.clave.indexOf(pega(yo.casa)) !== -1));
-    const cand = {
-      ficha: otra,
-      punt: parecido(yo.claves, otra.claves),
-      entero: parejo(yo.clave, otra.clave),
-      casa: mismaCasa(yo.casa, otra.casa) || empresaEnNombre,
-      cabe: cabeDentro(yo.piezas, otra.piezas),
-      cifras: yo.cifras === otra.cifras
-    };
-    if (!top || cand.punt > top.punt || (cand.punt === top.punt && cand.casa && !top.casa)) top = cand;
-  });
-  if (!top) return null;
+ *  · dudoso → puede serlo; hay que mirarlo a ojo */
+function compara(yo, otra) {
+  /* la empresa de una puede venir metida en el nombre de la otra:
+     "Final Code: Bermudas" es de vuestra "Final Code" */
+  const empresaEnNombre = !!((otra.casa && yo.clave.indexOf(otra.casaPegada) !== -1) ||
+    (yo.casa && otra.clave.indexOf(yo.casaPegada) !== -1));
+  const v = {
+    ficha: otra,
+    punt: parecido(yo.claves, otra.claves),
+    entero: parejo(yo.clave, otra.clave),
+    casa: mismaCasa(yo.casa, otra.casa) || empresaEnNombre,
+    cabe: cabeDentro(yo.piezas, otra.piezas),
+    cifras: yo.cifras === otra.cifras
+  };
 
   /* Las mismas palabras, escritas de otra forma: "11S" ↔ "11 S". Pero el
      nombre solo basta si la empresa acompaña (o si no se sabe de una de las
      dos): "El orfanato" lo tienen tres locales distintos, y son tres salas
      distintas. Si el nombre canta y la empresa no, se avisa y decide un
      humano. */
-  const dosEmpresas = !!(yo.casa && top.ficha.casa);
-  const mismasPalabras = top.entero === 1 ||
-    (yo.piezas.length === top.ficha.piezas.length && top.cabe);
-  const mismoNombre = mismasPalabras && (top.casa || !dosEmpresas);
-  const casiIgual = top.entero >= CASI_IGUAL;
-  const trozoClavado = top.punt >= UN_TROZO;
+  const dosEmpresas = !!(yo.casa && otra.casa);
+  const mismasPalabras = v.entero === 1 ||
+    (yo.piezas.length === otra.piezas.length && v.cabe);
+  const mismoNombre = mismasPalabras && (v.casa || !dosEmpresas);
 
-  top.seguro = mismoNombre || (top.casa && top.cifras && (casiIgual || trozoClavado));
-  top.motivo = mismoNombre ? 'mismo nombre'
+  /* Una sala es un sitio físico: si las dos dicen ciudad y no es la misma, no
+     pueden ser la misma sala por mucho que el nombre coincida —"El Búnker" de
+     Masnou y "The bunker" de Barcelona son dos—. Cuando una no dice ciudad
+     (el histórico casi nunca la traía), no contradice nada. */
+  const ciudadesChocan = !!(yo.ciudad && otra.ciudad && yo.ciudad !== otra.ciudad);
+  const casiIgual = v.entero >= CASI_IGUAL;
+  const trozoClavado = v.punt >= UN_TROZO;
+
+  v.seguro = !ciudadesChocan &&
+    (mismoNombre || (v.casa && v.cifras && (casiIgual || trozoClavado)));
+  v.motivo = mismoNombre ? 'mismo nombre'
     : casiIgual ? 'casi el mismo nombre'
     : 'un trozo del nombre, y la empresa cuadra';
-  top.dudoso = !top.seguro &&
-    ((top.casa && (top.cabe || top.punt >= SOSPECHA)) || top.punt >= CLAVADA);
+  v.dudoso = !v.seguro &&
+    ((v.casa && (v.cabe || v.punt >= SOSPECHA)) || v.punt >= CLAVADA);
+  return v;
+}
+
+/** La ficha de `lista` que mejor cuadra con `sala`, con su veredicto.
+ *  Devuelve null si la lista está vacía. */
+function mejor(sala, lista) {
+  const yo = ficha(sala);
+  let top = null;
+  lista.forEach(otra => {
+    const v = compara(yo, otra);
+    if (!top || v.punt > top.punt || (v.punt === top.punt && v.casa && !top.casa)) top = v;
+  });
   return top;
 }
 
-module.exports = {
+/* ¿La empresa respalda la comparación? Es lo barato de comprobar. */
+function casaRespalda(yo, otra) {
+  return mismaCasa(yo.casa, otra.casa) ||
+    !!(otra.casa && yo.clave.indexOf(otra.casaPegada) !== -1) ||
+    !!(yo.casa && otra.clave.indexOf(yo.casaPegada) !== -1);
+}
+
+/* Puerta rápida antes de comparar a fondo: en 300 salas hay 48.000 parejas y
+   medir el parecido de todas cuesta medio segundo. Si la empresa no respalda,
+   la pareja necesita un 0,9 de parecido, y eso es imposible cuando las
+   longitudes no se acercan: la cota de Dice y la de la distancia de edición lo
+   dicen con las longitudes en la mano. Todo en enteros y sin dividir, que esto
+   se ejecuta decenas de miles de veces. */
+function puedeLlegar(yo, otra) {
+  const A = yo.largos, B = otra.largos;
+  for (let i = 0; i < A.length; i++) {
+    const a = A[i];
+    for (let j = 0; j < B.length; j++) {
+      const b = B[j];
+      const corta = a < b ? a : b, larga = a < b ? b : a;
+      if (corta * 10 >= larga * 9) return true;                            // corta/larga ≥ 0,9
+      if (a > 1 && b > 1 && 20 * (corta - 1) >= 9 * (a + b - 2)) return true;  // cota de Dice ≥ 0,9
+    }
+  }
+  return false;
+}
+
+/** Todas las parejas de una lista que podrían ser la misma sala apuntada dos
+ *  veces. Cada pareja sale una sola vez, las seguras primero. */
+function duplicadas(salas) {
+  const f = fichas((salas || []).filter(s => s && s.name && !s.deleted));
+  const pares = [];
+  for (let i = 0; i < f.length; i++) {
+    for (let j = i + 1; j < f.length; j++) {
+      if (!casaRespalda(f[i], f[j]) && !puedeLlegar(f[i], f[j])) continue;
+      const v = compara(f[i], f[j]);
+      if (v.seguro || v.dudoso) {
+        pares.push({ a: f[i].sala, b: f[j].sala, punt: v.punt, motivo: v.motivo, seguro: v.seguro });
+      }
+    }
+  }
+  return pares.sort((x, y) => (y.seguro ? 1 : 0) - (x.seguro ? 1 : 0) || y.punt - x.punt);
+}
+
+return {
   limpia, piezas, clave, claves, casa, mismaCasa, cifras,
-  parejo, parecido, cabeDentro, ficha, fichas, mejor
+  parejo, parecido, cabeDentro, ficha, fichas, compara, mejor, duplicadas
 };
+
+});

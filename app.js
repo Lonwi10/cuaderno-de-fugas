@@ -249,10 +249,12 @@
       tab('done', 'Jugadas', d.length) +
       tab('wish', 'No jugadas', w.length) +
       tab('crew', 'La cuadrilla', players.length) +
+      tab('dups', 'Duplicadas', '') +
       tab('cfg', 'Ajustes', '') +
     '</nav>';
 
     if (ui.tab === 'crew') html += crewView(d, players);
+    else if (ui.tab === 'dups') html += dupsView(players);
     else if (ui.tab === 'cfg') html += cfgView();
     else html += listView(ui.tab === 'wish' ? w : d, players);
 
@@ -347,14 +349,19 @@
     };
   }
 
+  /* El sello del estado, que llevan igual las fichas y el listado de duplicadas. */
+  function sello(r) {
+    if (r.status === 'wish') return '<span class="badge wish">Sin jugar</span>';
+    if (r.escaped === true) return '<span class="badge win">Fuga' + (r.timeLeft ? ' · ' + esc(r.timeLeft) : '') + '</span>';
+    if (r.escaped === false) return '<span class="badge lose">Sin fuga</span>';
+    return '<span class="badge unk">Jugada</span>';
+  }
+
   function card(r, ord, players) {
     var isWish = r.status === 'wish';
     var url = safeUrl(r.web);
     var pp = perPerson(r), gt = groupTotal(r);
-    var badge = isWish ? '<span class="badge wish">Sin jugar</span>'
-      : r.escaped === true ? '<span class="badge win">Fuga' + (r.timeLeft ? ' · ' + esc(r.timeLeft) : '') + '</span>'
-      : r.escaped === false ? '<span class="badge lose">Sin fuga</span>'
-      : '<span class="badge unk">Jugada</span>';
+    var badge = sello(r);
     var meta = [r.company, r.city].filter(Boolean).map(esc).join(' · ');
     var who = isWish ? '' : '<div class="who">' + players.map(function (p) {
       var inn = r.who && r.who.indexOf(p.id) !== -1;
@@ -396,6 +403,76 @@
         '</div>' +
       '</div>' +
     '</article>';
+  }
+
+  /* ---------- duplicadas ---------- */
+  /* Cotejar todas las salas contra todas cuesta (con 300 salas son 48.000
+     parejas, unas dos décimas de segundo), así que solo se hace al abrir esta
+     pestaña, y se recuerda mientras no cambie ninguna sala. Quién decide si dos
+     nombres son la misma sala es cotejo.js, el mismo que usan las herramientas
+     para no duplicar el catálogo. */
+  var memoDups = { firma: null, pares: [] };
+  function parejasRepetidas() {
+    if (typeof Cotejo === 'undefined') return [];         // sin el módulo, no hay pestaña
+    var rooms = Store.rooms();
+    var firma = rooms.length + ':' + rooms.reduce(function (a, r) { return a + (+r.updatedAt || 0); }, 0);
+    if (firma !== memoDups.firma) memoDups = { firma: firma, pares: Cotejo.duplicadas(rooms) };
+    return memoDups.pares;
+  }
+
+  /* Una sala dentro de una pareja: lo justo para decidir cuál se queda. */
+  function filaDup(r, players) {
+    var pp = perPerson(r);
+    var datos = [];
+    if (r.date) datos.push(esc(fdate(r.date)));
+    if (num(r.price)) datos.push(esc(money(pp)) + '/persona');
+    if (r.city || r.company) datos.push([r.company, r.city].filter(Boolean).map(esc).join(' · '));
+    var quien = (r.who || []).map(function (id) {
+      var p = players.filter(function (x) { return x.id === id; })[0];
+      return p ? '<span class="av mini" style="background:' + esc(p.color) + '" title="' + esc(p.name) + '">' +
+        esc(initials(p.name)) + '</span>' : '';
+    }).join('');
+
+    return '<div class="dup-row">' +
+      '<div class="dup-what">' +
+        '<div class="dup-top">' + sello(r) + '<b>' + esc(r.name || 'Sin nombre') + '</b></div>' +
+        (datos.length ? '<p class="dup-datos mono">' + datos.join('  ·  ') + '</p>' : '') +
+      '</div>' +
+      (quien ? '<div class="who">' + quien + '</div>' : '') +
+      (num(r.rating) ? keys(num(r.rating)) : '') +
+      '<div class="dup-acts">' +
+        '<button class="btn ghost" data-act="edit" data-id="' + r.id + '" title="Ver la ficha">' + ICO.edit +
+          '<span class="txt-btn">Ver</span></button>' +
+        '<button class="btn ghost" data-act="dupdel" data-id="' + r.id + '" title="Quitar esta del cuaderno">✕</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function dupsView(players) {
+    var pares = parejasRepetidas();
+    var mismas = pares.filter(function (p) { return p.seguro; }).length;
+    var html = '<p class="count hint dup-count">' +
+      (pares.length ? pares.length + (pares.length === 1 ? ' pareja' : ' parejas') +
+        (mismas ? ' · ' + mismas + ' casi seguro la misma sala' : '') : 'ninguna') + '</p>';
+
+    if (!pares.length) {
+      return html + '<div class="empty"><h3>Ni una repetida</h3>' +
+        '<p>Se han cruzado todas las salas del cuaderno entre sí por nombre y empresa y no hay dos que sean la misma. ' +
+        'Vuelve a mirar cuando importéis otro catálogo.</p></div>';
+    }
+
+    html += '<p class="hint dup-intro">Cada bloque son dos salas que podrían ser la misma. ' +
+      'Mira los datos antes de quitar ninguna: a veces son <em>dos partidas distintas</em> de la misma sala, ' +
+      'y entonces lo que interesa es pasar los datos a una y quitar la otra. El ✕ pide dos toques.</p>';
+
+    return html + '<section class="dups">' + pares.map(function (p) {
+      return '<div class="dup' + (p.seguro ? ' segura' : '') + '">' +
+        '<div class="dup-h"><span class="lbl">' +
+          (p.seguro ? 'La misma sala' : 'Se parecen') + ' · ' + esc(p.motivo) +
+        '</span><span class="dup-punt mono">' + p.punt.toFixed(2) + '</span></div>' +
+        filaDup(p.a, players) + filaDup(p.b, players) +
+      '</div>';
+    }).join('') + '</section>';
   }
 
   function emptyState(total, tabId) {
@@ -667,6 +744,15 @@
     if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); ui.q = ''; ui.city = ''; saveUi(); render({ arriba: true }); return; }
     if (act === 'who') { ui.who = (ui.who === id) ? '' : id; saveUi(); render(); return; }
     if (act === 'tema') { ponTema(t.getAttribute('data-v')); render(); return; }
+    if (act === 'dupdel') {
+      var rep = Store.room(id);
+      if (!rep) return;
+      if (!armed(t, '✕ ¿Seguro?')) return;
+      Store.removeRoom(id);
+      render();
+      toast('“' + (rep.name || 'Sala') + '” quitada del cuaderno.');
+      return;
+    }
     if (act === 'clearf') { ui.q = ''; ui.who = ''; ui.city = ''; saveUi(); render(); return; }
     if (act === 'new') { openForm(null, ui.tab === 'wish' ? 'wish' : 'done'); return; }
     if (act === 'edit') { var room = Store.room(id); if (room) openForm(room); return; }

@@ -2,11 +2,12 @@
    Estrategia: la red primero (para que los cambios lleguen enseguida) y la
    caché como red de seguridad. Las llamadas a la hoja de Google nunca se
    cachean. Sube CACHE al publicar cambios para forzar la limpieza. */
-var CACHE = 'cuaderno-de-fugas-v1';
+var CACHE = 'cuaderno-de-fugas-v2';
 var SHELL = [
   './',
   'index.html',
   'styles.css',
+  'cotejo.js',
   'store.js',
   'app.js',
   'config.js',

@@ -14,7 +14,7 @@
    sale con la misma marca de tiempo que traía, al importar gana por los pelos
    —el desempate va para lo que entra— sin pisar ningún otro dato. */
 const fs = require('fs');
-const cotejo = require('./cotejo');
+const cotejo = require('../cotejo');
 
 const DEST = process.argv[2];
 const OUT = process.argv[3];
