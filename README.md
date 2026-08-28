@@ -204,6 +204,22 @@ node herramientas/fotos.js cuaderno.json catalogo.json excluir.json
 que hayáis apuntado mientras: solo añade la foto. Las que empareja sin tener su enlace las
 lista al final, para poder comprobar de un vistazo que no ha metido la pata.
 
+> **Antes de nada, republica el Apps Script.** La hoja es la fuente de la verdad: si el script
+> publicado es de antes de la columna **Foto**, devuelve las salas sin foto y, al sincronizar,
+> **se las come todas** aunque las acabes de importar. Se republica en *Implementar ▸ Gestionar
+> implementaciones ▸ ✏️ ▸ Versión: Nueva versión*; la URL no cambia.
+
+Y si las fotos ya están bajadas en otro fichero, no hace falta volver a pedirlas: `pegar-fotos.js`
+las copia a una copia del cuaderno sin tocar nada más —ni precios, ni fechas, ni quién fue, ni
+la marca de tiempo—, así que el fichero que sale solo puede añadir la foto.
+
+```bash
+# Ajustes ▸ Descargar copia  →  cuaderno.json
+node herramientas/pegar-fotos.js cuaderno.json cuaderno-de-fugas-fotos.json \
+     catalogo-barcelona.json datos-iniciales.json
+# y se importa cuaderno-de-fugas-fotos.json desde Ajustes ▸ Importar copia
+```
+
 Se quedan sin foto las salas que apuntasteis con el nombre de la empresa en lugar del de la
 sala (*Oniric Escape*, *The resistance*, *Wizarding Escape Rooms*…) y las que ya no están en
 escaperoomlover. Para esas, se pega el enlace de la imagen a mano en la columna **Foto** de la
@@ -266,6 +282,7 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | `robots.txt` | Mantiene la web fuera de los buscadores. |
 | `apps-script/Codigo.gs` | El puente con la hoja de cálculo (va pegado en Apps Script). |
 | `herramientas/catalogo.js`, `herramientas/dedupe.js`, `herramientas/fotos.js` | Bajan el catálogo de escaperoomlover, le quitan las salas que ya teníais y le ponen la foto de cada sala. |
+| `herramientas/pegar-fotos.js` | Pega en el cuaderno fotos ya bajadas, sin pedir nada a internet ni tocar ningún otro dato. |
 | `herramientas/cotejo.js`, `herramientas/bajar.js` | Las dos piezas que comparten esas tres: decidir si dos nombres son la misma sala, y bajar una página con buenas maneras. |
 | `catalogo-*.json`, `excluir.json` | El catálogo y sus excepciones. **Fuera del repo**, como el histórico. |
 | `datos-iniciales.json` | El histórico convertido de vuestra hoja. **No se sube al repo**: se importa a mano una vez. |

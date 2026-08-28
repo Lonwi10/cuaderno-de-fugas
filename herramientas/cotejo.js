@@ -28,12 +28,14 @@ const piezas = s => limpia(s).split(' ').filter(p => p && !ARTICULOS.has(p));
 const clave = s => piezas(s).join('');
 const pega = s => String(s || '').replace(/ /g, '');
 
-/* la clave del nombre entero primero, y detrás las de sus trozos; los trozos
-   muy cortos no valen: "dinero" solo coincidiría por casualidad */
+/* la clave del nombre entero primero, y detrás las de sus trozos. Los trozos
+   cortos no valen: "dinero" u "origen" coinciden por casualidad y dan 1.00 en
+   salas que no tienen nada que ver ("Alien: el origen" y "Criogenic 500: El
+   origen"). De siete letras en adelante ya son señas de identidad. */
 function claves(s) {
   const todo = clave(s);
   const trozos = String(s || '').split(/[:–—,]| - /)
-    .map(clave).filter(t => t.length >= 5 && t !== todo);
+    .map(clave).filter(t => t.length >= 7 && t !== todo);
   return [todo].concat(trozos);
 }
 
@@ -140,9 +142,15 @@ function mejor(sala, lista) {
   });
   if (!top) return null;
 
-  /* las mismas palabras, escritas de otra forma: "11S" ↔ "11 S" */
-  const mismoNombre = top.entero === 1 ||
+  /* Las mismas palabras, escritas de otra forma: "11S" ↔ "11 S". Pero el
+     nombre solo basta si la empresa acompaña (o si no se sabe de una de las
+     dos): "El orfanato" lo tienen tres locales distintos, y son tres salas
+     distintas. Si el nombre canta y la empresa no, se avisa y decide un
+     humano. */
+  const dosEmpresas = !!(yo.casa && top.ficha.casa);
+  const mismasPalabras = top.entero === 1 ||
     (yo.piezas.length === top.ficha.piezas.length && top.cabe);
+  const mismoNombre = mismasPalabras && (top.casa || !dosEmpresas);
   const casiIgual = top.entero >= CASI_IGUAL;
   const trozoClavado = top.punt >= UN_TROZO;
 
