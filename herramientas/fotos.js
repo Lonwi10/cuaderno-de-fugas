@@ -3,13 +3,14 @@
    sala por sala, así que va a 1 s por ficha y guarda a medida que avanza —si se
    corta, se relanza y sigue donde iba.
 
-   Uso: node fotos.js <cuaderno.json> [catalogo-completo.json] [excluir.json] [--rehacer]
+   Uso: node fotos.js <cuaderno.json> [excluir.json] [--rehacer]
 
-   El catálogo completo (el que saca catalogo.js, antes del dedupe) es opcional
-   y solo hace falta para las salas ya jugadas: su enlace apunta a la web de la
-   empresa, no a escaperoomlover, así que hay que buscarlas por nombre. Y el
-   excluir.json, que es donde vosotros ya habéis dicho a mano qué sala de la web
-   es cuál vuestra, remata las que no se cazan ni por nombre. */
+   La foto de una sala SOLO se saca de su propia ficha de escaperoomlover: la
+   que dice su id (erl-<slug>) o su enlace. Nunca por parecido de nombre. Dos
+   salas distintas se llaman igual muy a menudo —Atrincherados es de Elements y
+   también de Conecta Escape— y buscar por parecido les pega la foto de la otra.
+   Para las que no traen enlace está excluir.json, donde decís a mano qué ficha
+   de la web es cuál vuestra; y la que no esté ahí se queda sin foto. */
 const fs = require('fs');
 const { bajar, espera } = require('./bajar');
 const cotejo = require('../cotejo');
@@ -18,20 +19,15 @@ const args = process.argv.slice(2);
 const REHACER = args.indexOf('--rehacer') !== -1;
 const ficheros = args.filter(a => a.charAt(0) !== '-');
 const FICH = ficheros[0];
-const CAT = ficheros[1];
-const EXCL = ficheros[2];
+const EXCL = ficheros[1];
 
 if (!FICH) {
-  console.error('Uso: node fotos.js <cuaderno.json> [catalogo-completo.json] [excluir.json] [--rehacer]');
+  console.error('Uso: node fotos.js <cuaderno.json> [excluir.json] [--rehacer]');
   process.exit(1);
 }
 
 const cuaderno = JSON.parse(fs.readFileSync(FICH, 'utf8'));
 const salas = (cuaderno.rooms || []).filter(r => r && !r.deleted);
-
-/* Salas del catálogo completo, para buscar por nombre las que no traen enlace
-   de escaperoomlover. */
-const catalogo = CAT ? cotejo.fichas(JSON.parse(fs.readFileSync(CAT, 'utf8')).rooms || []) : null;
 
 const ERL = 'https://www.escaperoomlover.com';
 /* fotos que no son fotos: el marcador de "sin imagen" y la de compartir en redes */
@@ -54,13 +50,6 @@ function slugDe(sala) {
   if (porId) return { slug: porId[1], via: 'enlace' };
   const porWeb = String(sala.web || '').match(/escaperoomlover\.com\/[a-z]{2}\/juego\/([^?#/]+)/);
   if (porWeb) return { slug: porWeb[1], via: 'enlace' };
-  if (catalogo) {
-    const m = cotejo.mejor(sala, catalogo);
-    if (m && m.seguro) {
-      const slug = String(m.ficha.sala.id || '').replace(/^erl-/, '');
-      if (slug) return { slug: slug, via: 'por nombre: ' + m.ficha.sala.name + ' (' + m.motivo + ')' };
-    }
-  }
   const dicho = AMANO.filter(a => cotejo.clave(a.nombre) === cotejo.clave(sala.name))[0];
   if (dicho) return { slug: dicho.slug, via: 'lo dice excluir.json' };
   return null;
@@ -87,7 +76,7 @@ function guardar() {
   let puestas = 0, vacias = 0, hechas = 0;
 
   console.log(salas.length + ' salas; ' + pendientes.length + ' por mirar' +
-    (catalogo ? ' (con catálogo para buscar por nombre)' : ''));
+    '');
 
   for (const sala of pendientes) {
     const quien = slugDe(sala);
@@ -138,7 +127,7 @@ function guardar() {
   console.log('\ncon foto en total: ' + salas.filter(r => r.photo).length + ' de ' + salas.length + ' → ' + FICH);
   if (sinIdentificar.length) {
     console.log('\nno se han encontrado en escaperoomlover (' + sinIdentificar.length + ')' +
-      (catalogo ? '' : '; prueba pasando el catálogo completo como 2º argumento'));
+      '; si sabéis cuál es su ficha, apuntadla en excluir.json');
     sinIdentificar.slice(0, 40).forEach(s => console.log('   · ' + s));
   }
 })().catch(e => { guardar(); console.error('ERROR: ' + e.stack); process.exitCode = 1; });

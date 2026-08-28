@@ -14,7 +14,6 @@
    sale con la misma marca de tiempo que traía, al importar gana por los pelos
    —el desempate va para lo que entra— sin pisar ningún otro dato. */
 const fs = require('fs');
-const cotejo = require('../cotejo');
 
 const DEST = process.argv[2];
 const OUT = process.argv[3];
@@ -31,33 +30,25 @@ const cuaderno = JSON.parse(fs.readFileSync(DEST, 'utf8'));
 const salas = (cuaderno.rooms || cuaderno.data && cuaderno.data.rooms || [])
   .filter(r => r && r.id && !r.deleted);
 
-/* El banco de fotos: por id, y también por nombre para las que se apuntaron
-   con otro id (el histórico y la hoja no siempre coinciden). */
+/* El banco de fotos, SOLO por id. Nada de buscar por nombre: hay salas
+   distintas que se llaman igual (Atrincherados es de Elements y también de
+   Conecta Escape) y emparejarlas por parecido le pega a una la foto de la
+   otra. Si el id no está en el banco, la sala se queda sin foto. */
 const porId = new Map();
-const conNombre = [];
 BANCOS.forEach(f => {
   const j = JSON.parse(fs.readFileSync(f, 'utf8'));
   (j.rooms || []).forEach(r => {
     if (!r || !r.photo) return;
     if (r.id) porId.set(r.id, r.photo);
-    conNombre.push(r);
   });
 });
-const fichas = cotejo.fichas(conNombre);
 console.log('banco de fotos: ' + porId.size + ' salas de ' + BANCOS.length + ' fichero(s)');
 
-const parche = [], porNombre = [], sinFoto = [];
+const parche = [], sinFoto = [];
 
 salas.forEach(sala => {
   if (sala.photo) return;                       // ya la tiene: no hay nada que pegar
-  var foto = porId.get(sala.id);
-  if (!foto) {
-    const m = cotejo.mejor(sala, fichas);
-    if (m && m.seguro && m.ficha.sala.photo) {
-      foto = m.ficha.sala.photo;
-      porNombre.push(sala.name + '  ←  ' + m.ficha.sala.name + ' (' + m.motivo + ')');
-    }
-  }
+  const foto = porId.get(sala.id);
   if (!foto) { sinFoto.push(sala.name + (sala.company ? '  [' + sala.company + ']' : '')); return; }
   /* la sala tal cual está, con la foto y con su misma marca de tiempo */
   parche.push(Object.assign({}, sala, { photo: foto }));
@@ -72,10 +63,6 @@ fs.writeFileSync(OUT, JSON.stringify({
 console.log('salas en el cuaderno: ' + salas.length);
 console.log('ya tenían foto: ' + salas.filter(r => r.photo).length);
 console.log('se les pega ahora: ' + parche.length + ' → ' + OUT);
-if (porNombre.length) {
-  console.log('\nemparejadas por nombre (' + porNombre.length + '), por si alguna no es la que parece:');
-  porNombre.slice(0, 40).forEach(l => console.log('   · ' + l));
-}
 if (sinFoto.length) {
   console.log('\nse quedan sin foto (' + sinFoto.length + '): no hay ninguna bajada para ellas');
   sinFoto.slice(0, 40).forEach(l => console.log('   · ' + l));

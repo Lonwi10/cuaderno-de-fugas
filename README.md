@@ -209,21 +209,26 @@ no se vuelven a pedir; con `--rehacer` se piden todas otra vez.
 La foto se enlaza, no se copia: son unos 30 KB y solo se bajan las tarjetas que se ven. Sin
 cobertura no salen, y la tarjeta se queda sin hueco en lugar de mostrar un roto.
 
+**La foto sale solo de la ficha de su propia sala.** Nunca de una que se parezca. Esto no es
+un detalle: hay salas distintas con el mismo nombre —*Atrincherados* es de Elements y también
+de Conecta Escape, *El orfanato* lo tienen tres locales—, así que buscar la foto por parecido
+le pega a una la foto de la otra, y encima queda creíble. `fotos.js` identifica la ficha por el
+id (`erl-<slug>`) o por el enlace de la sala, y si no lo sabe, la deja **sin foto**.
+
 Para ponerles foto a las **ya jugadas** hay más faena: su enlace apunta a la web de la empresa
-y no a escaperoomlover, así que hay que buscarlas por nombre con el catálogo completo delante
-—el de `catalogo.js`, antes del dedupe— y con el `excluir.json`, que es donde ya dijisteis a
-mano qué sala de la web es cuál vuestra. Como la hoja es la fuente de la verdad, se hace sobre
-una copia recién exportada:
+y no a escaperoomlover, así que su ficha no se puede deducir. Ahí está `excluir.json`, donde
+decís a mano qué sala de la web es cuál vuestra; lo que no esté apuntado, sin foto. Como la
+hoja es la fuente de la verdad, se hace sobre una copia recién exportada:
 
 ```bash
 # Ajustes ▸ Descargar copia  →  cuaderno.json
-node herramientas/fotos.js cuaderno.json catalogo.json excluir.json
+node herramientas/fotos.js cuaderno.json excluir.json
 # y se vuelve a importar desde Ajustes ▸ Importar copia
 ```
 
 `fotos.js` no toca la marca de tiempo de ninguna sala, así que al importar no pisa nada de lo
-que hayáis apuntado mientras: solo añade la foto. Las que empareja sin tener su enlace las
-lista al final, para poder comprobar de un vistazo que no ha metido la pata.
+que hayáis apuntado mientras: solo añade la foto. Y lista al final las que ha resuelto por
+`excluir.json` y las que se han quedado sin identificar, para poder repasarlas de un vistazo.
 
 > **Antes de nada, republica el Apps Script.** La hoja es la fuente de la verdad: si el script
 > publicado es de antes de la columna **Foto**, devuelve las salas sin foto y, al sincronizar,
@@ -309,7 +314,7 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | `robots.txt` | Mantiene la web fuera de los buscadores. |
 | `apps-script/Codigo.gs` | El puente con la hoja de cálculo (va pegado en Apps Script). |
 | `herramientas/catalogo.js`, `herramientas/dedupe.js`, `herramientas/fotos.js` | Bajan el catálogo de escaperoomlover, le quitan las salas que ya teníais y le ponen la foto de cada sala. |
-| `herramientas/pegar-fotos.js` | Pega en el cuaderno fotos ya bajadas, sin pedir nada a internet ni tocar ningún otro dato. |
+| `herramientas/pegar-fotos.js` | Pega en el cuaderno fotos ya bajadas, emparejando **solo por id**, sin pedir nada a internet ni tocar ningún otro dato. |
 | `herramientas/cotejo.js`, `herramientas/bajar.js` | Las dos piezas que comparten esas tres: decidir si dos nombres son la misma sala, y bajar una página con buenas maneras. |
 | `catalogo-*.json`, `excluir.json` | El catálogo y sus excepciones. **Fuera del repo**, como el histórico. |
 | `datos-iniciales.json` | El histórico convertido de vuestra hoja. **No se sube al repo**: se importa a mano una vez. |

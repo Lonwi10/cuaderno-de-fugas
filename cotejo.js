@@ -166,9 +166,14 @@ function compara(yo, otra) {
 
   v.seguro = !ciudadesChocan &&
     (mismoNombre || (v.casa && v.cifras && (casiIgual || trozoClavado)));
+  /* El motivo tiene que decir la verdad aunque la pareja sea mala: se lee en la
+     pestaña de duplicadas y en los avisos de las herramientas, y un "la empresa
+     cuadra" cuando no cuadra hace creíble una pareja que no lo es. */
   v.motivo = mismoNombre ? 'mismo nombre'
     : casiIgual ? 'casi el mismo nombre'
-    : 'un trozo del nombre, y la empresa cuadra';
+    : trozoClavado && v.casa ? 'un trozo del nombre, y la empresa cuadra'
+    : v.casa ? 'la empresa cuadra, el nombre solo a medias'
+    : 'solo se parecen un poco';
   v.dudoso = !v.seguro &&
     ((v.casa && (v.cabe || v.punt >= SOSPECHA)) || v.punt >= CLAVADA);
   return v;
