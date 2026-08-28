@@ -164,10 +164,11 @@ entradas.forEach(e => {
       name: e.name, alt: e.alt, company: e.company, city: e.city, cities: e.cities || [],
       region: e.region, country: e.country,
       web: '', photo: '', players: '', minutes: '', terror: '', idiomas: '',
-      fichas: [], years: [], ediciones: []
+      fichas: [], years: [], ediciones: [], ciudades: []
     };
     salas.push(sala);
   }
+  (e.cities || []).forEach(c => { if (c && sala.ciudades.indexOf(c) === -1) sala.ciudades.push(c); });
   /* Se le guardan los nombres de TODAS sus ediciones, y se mete en los cajones
      de todas sus empresas: así una sala a la que le han cambiado el nombre dos
      veces sigue siendo una sola, y cruza con la vuestra aunque la apuntaseis
@@ -228,6 +229,30 @@ if (EXCL) {
   }
 }
 
+/* ---------- cuando la empresa no dice nada ---------- */
+/* cotejo.js da por la misma sala dos nombres iguales si la empresa acompaña
+   —o si de una de las dos no se sabe la empresa—. Eso vale dentro del
+   cuaderno, pero aquí enfrente hay una lista mundial, y cuando la empresa de
+   TERPECA se llama solo con palabras del gremio ("The Game", "Escape
+   Experience") no queda nada con lo que compararla: se quedaría en "el nombre
+   es el mismo" y hay una "The Bunker" en Chattanooga, otra en Roma y la
+   vuestra en Barcelona, y un "The Metro" en París que no es el de Vilafranca.
+   Así que sin aval de empresa se le exige a la CIUDAD que cuadre, y si
+   tampoco, la pareja se manda a repasar a mano. */
+const pueblo = s => limpiaPais(s).replace(/^(?:l['\s]|el\s|la\s)/, '')
+  .replace(/[^a-z0-9]+/g, ' ').trim();
+
+function mismoPueblo(a, b) {
+  const x = pueblo(a).split(' ').filter(Boolean);
+  const y = pueblo(b).split(' ').filter(Boolean);
+  if (!x.length || !y.length) return false;
+  const corta = x.length <= y.length ? x : y;
+  const larga = x.length <= y.length ? y : x;
+  return corta.every(p => larga.indexOf(p) !== -1);   // "Masnou" cabe en "El Masnou"
+}
+const ciudadCuadra = (mia, sala) =>
+  (sala.ciudades || []).some(c => mismoPueblo(mia.city, c));
+
 /* ---------- el cruce ---------- */
 const parejas = [];        // sala de TERPECA ↔ sala vuestra
 const dudosas = [];
@@ -256,7 +281,21 @@ salas.forEach(s => {
   const dicho = AMANO[s.clave];
   if (dicho) {
     if (!dicho.nombre) { s.fuera = 'dicho a mano'; return; }
-    const mia = fichasMias.filter(f => f.clave === cotejo.clave(dicho.nombre))[0];
+    /* Puede haber dos salas vuestras con el mismo nombre —"The bunker" de
+       Enigmik y "El Búnker" del Masnou son el mismo nombre para cotejo.js—, así
+       que entre las que se llaman así se coge la que mejor cuadre con esta. */
+    const candidatas = fichasMias.filter(f => f.clave === cotejo.clave(dicho.nombre));
+    let mia = candidatas[0], top = -1;
+    if (candidatas.length > 1) {
+      candidatas.forEach(f => {
+        const ciudad = ciudadCuadra(f.sala, s) ? 1 : 0;
+        const v = s.fichas.reduce(function (m, g) {
+          const c = cotejo.compara(g, f);
+          return Math.max(m, c.punt + (c.casa ? 1 : 0) + ciudad);
+        }, 0);
+        if (v > top) { top = v; mia = f; }
+      });
+    }
     if (mia) { apunta(s, mia.sala, 'a mano', 1); s.fuera = 'a mano'; return; }
     sinCruzar.push(s.clave + ': en ' + EXCL + ' dice "' + dicho.nombre + '", y no hay ninguna sala vuestra con ese nombre');
     return;
@@ -272,10 +311,18 @@ salas.forEach(s => {
     });
   });
   if (!mejor) return;
-  if (mejor.v.seguro) {
+  const sinAval = mejor.v.seguro && !mejor.v.casa && !ciudadCuadra(mejor.g.sala, s);
+  if (mejor.v.seguro && !sinAval) {
     if (apunta(s, mejor.g.sala, mejor.v.motivo, mejor.v.punt)) s.fuera = 'ya la teníais';
   } else {
-    dudosas.push({ s: s, mia: mejor.g.sala, punt: mejor.v.punt, motivo: mejor.v.motivo });
+    dudosas.push({
+      s: s, mia: mejor.g.sala, punt: mejor.v.punt,
+      motivo: sinAval ? 'el nombre es el mismo, pero la empresa no lo respalda y la ciudad no cuadra'
+        : mejor.v.motivo,
+      /* si la empresa o la ciudad acompañan, la pareja merece un repaso; si no
+         acompaña ninguna, es una coincidencia de nombre y va al montón */
+      avalada: !!mejor.v.casa || ciudadCuadra(mejor.g.sala, s)
+    });
   }
 });
 
@@ -303,12 +350,19 @@ const PISTAS_ES = /[áéíóúñüçàèòï¡¿]|^(el|la|los|las|un|una|del|de|
 const HISPANOS = new Set(['spain', 'andorra', 'mexico', 'argentina', 'chile', 'colombia', 'peru', 'uruguay']);
 
 /** El nombre con el que la vais a reconocer: en España, el original antes que la
- *  traducción al inglés que pone TERPECA. El otro se guarda en las notas. */
+ *  traducción al inglés que pone TERPECA delante. El otro se guarda en las notas.
+ *
+ *  TERPECA escribe "traducción [original]", así que para una sala española lo
+ *  normal es que el bueno sea el de los corchetes. Pero en la sección de
+ *  premiadas lo pone al revés, y hay nombres que no delatan su idioma
+ *  ("Ensayo 1: Paranoia Remastered" no lleva ni un acento), así que se mira
+ *  cuál de los dos canta a español y solo se cae al orden por defecto cuando
+ *  ninguno lo hace. */
 function nombreBueno(s) {
   if (!s.alt) return s.name;
   if (!HISPANOS.has(limpiaPais(s.country))) return s.name;
-  const a = PISTAS_ES.test(s.name), b = PISTAS_ES.test(s.alt);
-  if (b && !a) return s.alt;
+  if (PISTAS_ES.test(s.alt)) return s.alt;
+  if (!PISTAS_ES.test(s.name)) return s.alt;
   return s.name;
 }
 
@@ -393,15 +447,32 @@ parejas.slice().sort((a, b) => (a.s.rank || 9999) - (b.s.rank || 9999)).forEach(
     '  · ' + p.s.historia + (p.motivo === 'a mano' ? '  (a mano)' : ''));
 });
 
-if (dudosas.length) {
-  console.log('\n== ¿son la misma sala? (' + dudosas.length + ') ==');
-  console.log('si alguna lo es, copia su línea a ' + (EXCL || 'excluir-terpeca.json') + ' y vuelve a lanzar esto;');
-  console.log('si no lo es, déjala: entrará como sala nueva si pasa el filtro');
-  dudosas.sort((a, b) => b.punt - a.punt).forEach(d => {
-    console.log('   ? ' + (d.s.rank ? '#' + d.s.rank + ' ' : '') + d.s.name + '  [' + d.s.company + ', ' + d.s.city + ']');
-    console.log('     ↔ vuestra "' + d.mia.name + '"' + (d.mia.company ? ' [' + d.mia.company + ']' : '') +
-      '  (' + d.punt.toFixed(2) + ', ' + d.motivo + ')');
+const donde = s => [s.company, (s.ciudades || []).slice(0, 4).join(' / '), s.country].filter(Boolean).join(' · ');
+
+const paraMirar = dudosas.filter(d => d.avalada).sort((a, b) => b.punt - a.punt);
+const coincidencias = dudosas.filter(d => !d.avalada).sort((a, b) => b.punt - a.punt);
+
+if (paraMirar.length) {
+  console.log('\n== ¿son la misma sala? (' + paraMirar.length + ') ==');
+  console.log('la empresa o la ciudad acompañan, así que hay que mirarlas: si lo son, copia su');
+  console.log('línea a ' + (EXCL || 'excluir-terpeca.json') + ' y vuelve a lanzar esto. Si no lo son, déjalas: entrarán');
+  console.log('como sala nueva si pasan el filtro.');
+  paraMirar.forEach(d => {
+    console.log('   ? ' + (d.s.rank ? '#' + d.s.rank + ' ' : '') + d.s.name + '  [' + donde(d.s) + ']');
+    console.log('     ↔ vuestra "' + d.mia.name + '"  [' + (d.mia.company || 'sin empresa') +
+      ' · ' + (d.mia.city || 'sin ciudad') + ']  (' + d.punt.toFixed(2) + ', ' + d.motivo + ')');
     console.log('     "' + d.s.clave + '": "la apuntasteis como \\"' + d.mia.name + '\\""');
+  });
+}
+
+if (coincidencias.length) {
+  console.log('\n== se llaman igual y nada más (' + coincidencias.length + ') ==');
+  console.log('ni la empresa ni la ciudad acompañan: son salas distintas con el mismo nombre en otro');
+  console.log('sitio, que de eso está lleno el mundo. Se listan por si acaso, con su clave al final.');
+  coincidencias.forEach(d => {
+    console.log('   · ' + d.s.name + '  [' + donde(d.s) + ']  ↔  vuestra "' + d.mia.name +
+      '" [' + (d.mia.city || 'sin ciudad') + ']');
+    console.log('        "' + d.s.clave + '": "la apuntasteis como \\"' + d.mia.name + '\\""');
   });
 }
 if (sinCruzar.length) {

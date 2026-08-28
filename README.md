@@ -266,11 +266,28 @@ Secret [El Secreto de los Krugger]`—, así que cada sala se coteja con sus dos
 el mismo [`cotejo.js`](cotejo.js) que usan el catálogo y la pestaña de duplicadas. La ciudad
 **no** se compara: TERPECA dice la ciudad grande ("Barcelona") donde el catálogo dice el
 municipio ("Cornellá de Llobregat"), y compararlas daría por distintas salas que son la misma.
-El aval es la empresa.
+El aval es la empresa, que además se reconoce cuando le han cambiado el nombre (`Malum Escape
+Room (formerly Krematorium…)` es la misma casa que vuestro `Krematorium`).
 
-Cuando el nombre canta pero la empresa no cuadra del todo —vuestra *Insomnia Corp* contra su
-*Insomnia Corporation*— la herramienta no decide sola: lo lista en **¿son la misma sala?** con
-la línea ya escrita para pegarla en `excluir-terpeca.json`:
+Con una excepción, y es importante: hay empresas que se llaman **solo con palabras del
+gremio** —*The Game*, *Escape Experience*, *Escape Barcelona*— y de esas no queda nada con lo
+que comparar. Ahí el nombre a solas no basta, porque enfrente hay una lista mundial: existe
+una *The Bunker* en Chattanooga, otra en Roma y la vuestra en Barcelona, y un *The Metro* en
+París que no es el de Vilafranca. Cuando la empresa no respalda, se le exige a la **ciudad**
+que cuadre (`Masnou` vale por `El Masnou`, `Hospitalet` por `L'Hospitalet de Llobregat`), y si
+tampoco, la pareja se manda a repasar a mano.
+
+Lo que no se da por seguro se lista en dos montones:
+
+- **¿son la misma sala?** — la empresa o la ciudad acompañan, así que hay que mirarlas una a
+  una. Aquí salen los aciertos que ningún cotejo puede dar por seguros: vuestra *La casa* de
+  Insomnia contra su `The House`, vuestro *Bajo zero* contra su `Below Zero`, *Kidnapped in
+  BCN* contra `Kidnapped in Barcelona`.
+- **se llaman igual y nada más** — ni empresa ni ciudad: son salas distintas con el mismo
+  nombre en otro sitio, que de eso está lleno el mundo (hay ocho *Atlantis* en el ranking).
+  Se listan al final por si acaso y normalmente no hay nada que hacer con ellas.
+
+Las dos traen la línea ya escrita para pegarla en `excluir-terpeca.json`:
 
 ```json
 {
