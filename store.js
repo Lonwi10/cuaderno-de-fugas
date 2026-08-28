@@ -54,6 +54,12 @@
     return st;
   }
 
+  /* Campos que una versión antigua de la hoja no conoce y por tanto no manda.
+     Que no los mande NO significa que estén vacíos: significa que su esquema es
+     más viejo. Si se tomara como "vacío", una sincronización con un Apps Script
+     sin la columna Foto borraría todas las fotos del cuaderno. */
+  var NUEVOS = ['photo'];
+
   /** Une dos versiones quedándose con la entrada más reciente de cada id. */
   function merge(a, b) {
     var out = { players: [], rooms: [] };
@@ -62,7 +68,17 @@
       (a[key] || []).concat(b[key] || []).forEach(function (it) {
         if (!it || !it.id) return;
         var prev = by[it.id];
-        if (!prev || (+it.updatedAt || 0) >= (+prev.updatedAt || 0)) by[it.id] = it;
+        if (!prev || (+it.updatedAt || 0) >= (+prev.updatedAt || 0)) {
+          if (prev) NUEVOS.forEach(function (campo) {
+            // la que gana no trae el campo pero la otra sí: se conserva
+            if (!(campo in it) && prev[campo]) it[campo] = prev[campo];
+          });
+          by[it.id] = it;
+        } else {
+          NUEVOS.forEach(function (campo) {
+            if (!(campo in prev) && it[campo]) prev[campo] = it[campo];
+          });
+        }
       });
       Object.keys(by).forEach(function (id) { out[key].push(by[id]); });
     });

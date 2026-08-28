@@ -26,7 +26,10 @@ if (!DEST || !OUT || !BANCOS.length) {
 }
 
 const cuaderno = JSON.parse(fs.readFileSync(DEST, 'utf8'));
-const salas = (cuaderno.rooms || cuaderno.data && cuaderno.data.rooms || []).filter(r => r && r.id);
+/* las dadas de baja se quedan como están: ponerle una foto a una lápida no
+   tiene sentido, y así el parche no las menciona ni de refilón */
+const salas = (cuaderno.rooms || cuaderno.data && cuaderno.data.rooms || [])
+  .filter(r => r && r.id && !r.deleted);
 
 /* El banco de fotos: por id, y también por nombre para las que se apuntaron
    con otro id (el histórico y la hoja no siempre coinciden). */

@@ -265,6 +265,11 @@ Cada sala y cada colega llevan una marca de tiempo. Al sincronizar gana la versi
 reciente **de cada sala**, no del cuaderno entero: si dos apuntáis salas distintas a la vez,
 se conservan las dos.
 
+Con una excepción: si la versión que llega **no trae un campo** (porque el Apps Script
+publicado es de un esquema anterior y no lo conoce), no se toma como "vacío" y se conserva lo
+que hubiera. Sin eso, sincronizar con una hoja sin la columna **Foto** borraría todas las
+fotos del cuaderno. Un campo que llega vacío sí manda: eso es un borrado de verdad.
+
 ---
 
 ## Privacidad: qué es público y qué no
