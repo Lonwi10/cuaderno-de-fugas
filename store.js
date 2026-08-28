@@ -104,7 +104,13 @@
   if (!cfg.url && global.CDF_CONFIG && global.CDF_CONFIG.url) cfg.url = String(global.CDF_CONFIG.url);
 
   var listeners = [];
-  var status = { state: cfg.url ? 'idle' : 'local', dirty: false, lastSync: cfg.lastSync || 0, msg: '' };
+  /* scriptVersion / esquemaViejo: qué Apps Script hay publicado al otro lado.
+     Sin esto, publicar una versión antigua es invisible desde la app y solo se
+     nota en que algo (las fotos) no llega a los demás. */
+  var status = {
+    state: cfg.url ? 'idle' : 'local', dirty: false, lastSync: cfg.lastSync || 0, msg: '',
+    scriptVersion: null, esquemaViejo: false
+  };
   var pushTimer = null, pulling = false, pushing = false;
 
   function emit() {
@@ -138,6 +144,11 @@
         var json;
         try { json = JSON.parse(txt); } catch (e) { throw { code: 'respuesta-no-json', body: txt.slice(0, 200) }; }
         if (!json || json.ok !== true) throw { code: 'error-script', msg: (json && json.error) || 'respuesta inesperada' };
+        status.scriptVersion = json.version === undefined ? 0 : +json.version;
+        var salas = (json.data && json.data.rooms) || [];
+        /* si trae salas y ninguna menciona photo, el script publicado es de
+           antes de la columna Foto: las fotos no se comparten con los demás */
+        status.esquemaViejo = salas.length > 0 && !salas.some(function (r) { return r && 'photo' in r; });
         return normalize(json.data || blank());
       });
   }

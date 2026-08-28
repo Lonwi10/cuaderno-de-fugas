@@ -548,6 +548,18 @@
     if (conectado) {
       html += '<p>Este dispositivo está conectado. Todo lo que apuntéis se guarda en tu hoja de Google y los demás lo ven al abrir la web.</p>' +
         '<p class="urlbox mono">' + esc(cfg.url) + '</p>' +
+        /* Qué Apps Script hay publicado en esa URL. Publicar una versión
+           antigua no da ningún error: solo deja de llegar lo nuevo (las fotos),
+           y eso es imposible de adivinar desde aquí si no se dice. */
+        (s.esquemaViejo
+          ? '<p class="aviso">El Apps Script publicado en esa URL es <b>anterior a la columna Foto</b>' +
+            (s.scriptVersion ? ' (dice ser la versión ' + esc(s.scriptVersion) + ')' : ' (no dice su versión)') +
+            '. Las fotos se ven en este dispositivo, pero no se guardan en la hoja ni llegan a los demás. ' +
+            'Vuelve a pegar <span class="mono">apps-script/Codigo.gs</span>, guarda, y en <em>Implementar ▸ ' +
+            'Gestionar implementaciones</em> edita con el lápiz <b>la implementación cuyo id acabe igual que ' +
+            'la URL de arriba</b> y elige <em>Versión: Nueva versión</em>. Crear una implementación nueva no ' +
+            'sirve: tendría otra URL.</p>'
+          : s.scriptVersion ? '<p class="hint">Apps Script publicado: versión ' + esc(s.scriptVersion) + '.</p>' : '') +
         '<p class="hint">Estado: ' + esc(s.msg || ({ idle: 'al día', pending: 'subiendo cambios', syncing: 'sincronizando', offline: 'sin conexión', local: 'sin conectar' }[s.state] || s.state)) +
         (s.lastSync ? ' · última sincronización a las ' + new Date(s.lastSync).toLocaleTimeString('es-ES') : '') + '</p>' +
         '<div class="btnrow">' +

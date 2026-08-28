@@ -409,6 +409,14 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
   color:var(--ink2) !important; overflow-wrap:anywhere;
 }
 .panel .field{max-width:620px}                 /* los campos no cruzan el panel entero */
+/* aviso dentro de un panel: no es un error, es algo que hay que arreglar */
+.aviso{
+  font-size:12.5px; line-height:1.55; color:var(--ink2) !important; max-width:68ch;
+  background:var(--clay-ghost); border:1px solid var(--clay-ghost); border-left:3px solid var(--clay);
+  padding:11px 13px;
+}
+.aviso b{color:var(--clay)}
+.aviso em{font-style:normal; color:var(--ink); font-weight:600}
 .namegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr)); gap:12px}
 
 /* ---------- 11. sin registros ---------- */

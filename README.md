@@ -100,10 +100,13 @@ cambia.
 > URL**, y la que tiene puesta la app sigue sirviendo el código viejo. Es el fallo más fácil de
 > cometer y no da ningún error: simplemente parece que el cambio no ha hecho nada.
 
-Para comprobar qué está publicado de verdad, abre la URL `/exec` en el navegador: la respuesta
-empieza por `{"ok":true,"version":2,…`. Si no aparece `version`, o el número no es el de
-[`apps-script/Codigo.gs`](apps-script/Codigo.gs), lo publicado es código viejo o esa URL es de
-otra implementación.
+Para comprobar qué está publicado de verdad no hace falta salir de la app: en **Ajustes**, bajo
+la URL de la hoja, se dice qué versión del script hay al otro lado, y si es anterior a la
+columna **Foto** sale un aviso con lo que falta por hacer. Ahí mismo está la URL que usa ese
+dispositivo: su id tiene que ser el de la implementación que edites.
+
+(A mano también vale: abre la URL `/exec` en el navegador y la respuesta empieza por
+`{"ok":true,"version":2,…`.)
 
 ## 4. Instalarla en el móvil (sin APK)
 
