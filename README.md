@@ -179,11 +179,15 @@ Para rehacerlo o ampliarlo a otra provincia, en `herramientas/`:
 ```bash
 node herramientas/catalogo.js barcelona catalogo.json 15
 node herramientas/dedupe.js catalogo.json datos-iniciales.json catalogo-barcelona.json excluir.json
-node herramientas/fotos.js catalogo-barcelona.json
 ```
 
 Luego se importa el resultado desde *Ajustes → Importar copia*. Va a 1 segundo por página
 a propósito: es una web ajena.
+
+El catálogo ya sale **con la foto de cada sala**: en el listado de la provincia, la foto va
+dentro del enlace de su propia sala (`<a data-href='/es/juego/SLUG'><img …>`), así que el
+emparejado lo da la web y no hay que entrar en 300 fichas ni adivinar nada. Solo hace falta
+`fotos.js` para las salas que no están en ese listado.
 
 El `excluir.json` es la última palabra, para las que no se parecen en nada al nombre con el
 que las apuntasteis. Una línea por sala, con el trozo final de su enlace y el motivo:
@@ -222,7 +226,7 @@ hoja es la fuente de la verdad, se hace sobre una copia recién exportada:
 
 ```bash
 # Ajustes ▸ Descargar copia  →  cuaderno.json
-node herramientas/fotos.js cuaderno.json excluir.json
+node herramientas/fotos.js cuaderno.json excluir.json catalogo.json
 # y se vuelve a importar desde Ajustes ▸ Importar copia
 ```
 
@@ -313,7 +317,7 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | `sw.js`, `manifest.webmanifest`, `icons/` | Lo que la convierte en app instalable y sin conexión. |
 | `robots.txt` | Mantiene la web fuera de los buscadores. |
 | `apps-script/Codigo.gs` | El puente con la hoja de cálculo (va pegado en Apps Script). |
-| `herramientas/catalogo.js`, `herramientas/dedupe.js`, `herramientas/fotos.js` | Bajan el catálogo de escaperoomlover, le quitan las salas que ya teníais y le ponen la foto de cada sala. |
+| `herramientas/catalogo.js`, `herramientas/dedupe.js`, `herramientas/fotos.js` | Bajan el catálogo de escaperoomlover con la foto de cada sala, le quitan las que ya teníais y ponen las fotos que falten. |
 | `herramientas/pegar-fotos.js` | Pega en el cuaderno fotos ya bajadas, emparejando **solo por id**, sin pedir nada a internet ni tocar ningún otro dato. |
 | `herramientas/cotejo.js`, `herramientas/bajar.js` | Las dos piezas que comparten esas tres: decidir si dos nombres son la misma sala, y bajar una página con buenas maneras. |
 | `catalogo-*.json`, `excluir.json` | El catálogo y sus excepciones. **Fuera del repo**, como el histórico. |

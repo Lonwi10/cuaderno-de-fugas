@@ -32,6 +32,10 @@ function titulo(s) {
   return s;
 }
 
+/* imágenes que no son la foto de la sala: el marcador de "sin imagen", la de
+   compartir en redes y el logotipo de la web */
+const SIN_FOTO = /no-image|web-erl-share|logo_erl/;
+
 /* ---------- troceado de la página ---------- */
 /* Cada empresa es un <li data-id="…"> con sus salas dentro. No se puede cortar
    por </li>: dentro hay listas anidadas (líneas de metro, ofertas) y el bloque
@@ -43,6 +47,24 @@ function trozo(bloque, re) {
   const m = bloque.match(re);
   return m ? m[1] : '';
 }
+/* Las fotos vienen en el carrusel de la empresa, y cada una dentro de un
+   <a data-href='/es/juego/SLUG'> con el slug de SU sala: el emparejado lo da la
+   propia web, no hay nada que adivinar. Cada sala trae dos, y se coge la
+   vertical —la que la web marca 'hide-small', la misma que luce en su ficha—;
+   la otra es el recorte apaisado para pantalla pequeña. */
+function fotosDe(bloque) {
+  const mapa = {};
+  const re = /<a[^>]*data-href='\/es\/juego\/([^']+)'[^>]*>\s*<img([^>]*)>/g;
+  let m;
+  while ((m = re.exec(bloque))) {
+    const slug = m[1], img = m[2];
+    const src = (img.match(/data-src='([^']+)'/) || [])[1];
+    if (!src || SIN_FOTO.test(src)) continue;
+    if (/class='[^']*hide-small/.test(img) || !mapa[slug]) mapa[slug] = src;
+  }
+  return mapa;
+}
+
 function parseBloque(bloque) {
   const anchor = trozo(bloque, /class='text-bold company-name[^>]*>([\s\S]*?)<\/a>/);
   const empresa = titulo(trozo(anchor, /<u[^>]*>([\s\S]*?)<\/u>/) || anchor);
@@ -52,6 +74,7 @@ function parseBloque(bloque) {
   const ciudad = limpio(segundo).split('|')[0].replace(/bono\s+regalo.*/i, '').trim();
 
   const salas = [];
+  const fotos = fotosDe(bloque);
   const filas = bloque.split(/<div class="table-row">/).slice(1);
   filas.forEach(fila => {
     const slug = trozo(fila, /data-href="\/es\/juego\/([^"]+)"/);
@@ -61,6 +84,7 @@ function parseBloque(bloque) {
     salas.push({
       slug: slug,
       name: nombre,
+      photo: fotos[slug] || '',
       company: empresa,
       city: ciudad,
       stars: estrellas,
@@ -93,6 +117,7 @@ function aSala(s, i) {
     company: empresaLimpia(s.company, s.city),
     city: s.city,
     web: 'https://www.escaperoomlover.com/es/juego/' + s.slug,
+    photo: s.photo,
     price: '',                       // el precio real se apunta el día que se juega
     priceMode: 'total',
     people: '',
