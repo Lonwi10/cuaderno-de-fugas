@@ -32,7 +32,7 @@ var HOJA_COLEGAS = 'Colegas';
 
 var COLS_SALAS = ['id', 'Sala', 'Empresa', 'Ciudad', 'Web', 'Precio', 'Precio es', 'Nº personas',
                   'Estado', 'Fecha', 'Quién fue', 'Resultado', 'Tiempo restante', 'Nota', 'Notas',
-                  'Actualizado', 'Borrada'];
+                  'Actualizado', 'Borrada', 'Foto'];
 var COLS_COLEGAS = ['id', 'Nombre', 'Color', 'Actualizado', 'Borrado'];
 var PAL = ['#C08B2C', '#5E8C6A', '#B0674F', '#5F82A0', '#8E6E9E', '#8A8B4A', '#4E8F8B', '#A85C79'];
 
@@ -215,7 +215,8 @@ function leer() {
     id: s('id'), sala: s('Sala'), empresa: s('Empresa'), ciudad: s('Ciudad'), web: s('Web'),
     precio: s('Precio'), modo: s('Precio es'), personas: s('Nº personas'), estado: s('Estado'),
     fecha: s('Fecha'), quien: s('Quién fue'), res: s('Resultado'), tiempo: s('Tiempo restante'),
-    nota: s('Nota'), notas: s('Notas'), act: s('Actualizado'), baja: s('Borrada')
+    nota: s('Nota'), notas: s('Notas'), act: s('Actualizado'), baja: s('Borrada'),
+    foto: s('Foto')
   };
 
   var rooms = [];
@@ -252,6 +253,7 @@ function leer() {
       timeLeft: String(celda(f, S.tiempo) || '').trim(),
       rating: +celda(f, S.nota) || 0,
       notes: String(celda(f, S.notas) || '').trim(),
+      photo: String(celda(f, S.foto) || '').trim(),
       updatedAt: aMs(celda(f, S.act)) || Date.now(),
       deleted: verdad(celda(f, S.baja)) || undefined
     });
@@ -295,7 +297,8 @@ function escribir(st) {
       r.rating || '',
       r.notes || '',
       new Date(r.updatedAt || Date.now()).toISOString(),
-      r.deleted ? 'sí' : ''
+      r.deleted ? 'sí' : '',
+      r.photo || ''
     ];
   });
 
@@ -304,6 +307,10 @@ function escribir(st) {
 }
 
 function volcar(sh, cols, filasNuevas) {
+  /* una hoja de una versión anterior puede tener menos columnas que COLS */
+  if (sh.getMaxColumns() < cols.length) {
+    sh.insertColumnsAfter(sh.getMaxColumns(), cols.length - sh.getMaxColumns());
+  }
   sh.getRange(1, 1, 1, cols.length).setValues([cols]).setFontWeight('bold');
   var ultima = sh.getLastRow();
   if (ultima > 1) sh.getRange(2, 1, ultima - 1, cols.length).clearContent();

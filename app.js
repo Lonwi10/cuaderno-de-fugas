@@ -340,14 +340,23 @@
         esc(p.name) + (inn ? '' : ' (no fue)') + '">' + esc(initials(p.name)) + '</span>';
     }).join('') + '</div>';
 
+    /* la foto de escaperoomlover, si la sala la trae, en el hueco de la derecha */
+    var foto = safeUrl(r.photo);
+    var shot = foto ? '<img class="shot" src="' + esc(foto) + '" alt="" loading="lazy" decoding="async"' +
+      ' onerror="this.hidden=true">' : '';           // sin cobertura, mejor sin hueco
+
     return '<article class="card' + (isWish ? ' wishlist' : '') + '">' +
       '<div class="crown"><span class="ord">' +
         (isWish ? 'Sin jugar' : (ord ? 'Sala nº ' + String(ord).padStart(2, '0') : 'Sin fecha')) +
       '</span>' + badge + '</div>' +
-      '<h3>' + esc(r.name || 'Sin nombre') + '</h3>' +
-      (meta ? '<p class="meta">' + meta + '</p>' : '') +
-      (isWish ? '' : keys(num(r.rating))) +
-      (r.notes ? '<p class="notes">' + esc(r.notes) + '</p>' : '') +
+      '<div class="body">' +
+        '<div class="text">' +
+          '<h3>' + esc(r.name || 'Sin nombre') + '</h3>' +
+          (meta ? '<p class="meta">' + meta + '</p>' : '') +
+          (isWish ? '' : keys(num(r.rating))) +
+          (r.notes ? '<p class="notes">' + esc(r.notes) + '</p>' : '') +
+        '</div>' + shot +
+      '</div>' +
       '<div class="foot">' +
         (isWish ? '' : (num(r.price)
           ? '<span class="price">' + money(pp) + ' <small>/persona' + (attendees(r) > 1 ? ' · ' + money(gt) + ' la cuadrilla' : '') + '</small></span>'

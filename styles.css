@@ -141,9 +141,16 @@ select.sel{
 .badge.win{background:var(--moss-ghost); color:var(--moss)}
 .badge.lose{background:var(--clay-ghost); color:var(--clay)}
 .badge.wish,.badge.unk{background:var(--surface2); color:var(--ink2)}
+/* cuerpo de la tarjeta: el texto a la izquierda y la foto en el hueco derecho */
+.card .body{display:flex; align-items:flex-start; gap:11px}
+.card .text{flex:1; min-width:0; display:flex; flex-direction:column; gap:9px}
+.card .shot{
+  width:84px; height:84px; flex:none; border-radius:9px; object-fit:cover;
+  border:1px solid var(--line-soft); background:var(--surface2);
+}
 .card h3{
   font-family:"Big Shoulders Display","Archivo Narrow",sans-serif; font-weight:700;
-  font-size:27px; line-height:1; text-transform:uppercase;
+  font-size:27px; line-height:1; text-transform:uppercase; overflow-wrap:break-word;
 }
 .card .meta{font-size:12.5px; color:var(--ink2)}
 .rate{display:flex; gap:3px; align-items:center}

@@ -106,7 +106,8 @@ guardan en el móvil y se suben a la hoja en cuanto vuelve la conexión.
 ## Cómo se usa
 
 - **Jugadas**: cada sala con su ordinal por fecha, insignia de resultado, nota, precio por
-  persona, fecha, quién fue y enlace a la web. Se puede buscar, filtrar por colega y ordenar.
+  persona, fecha, quién fue, enlace a la web y, a la derecha, la foto de la sala. Se puede
+  buscar, filtrar por colega y ordenar.
 - **No jugadas**: todo lo que queda por jugar (el catálogo de la provincia y las vuestras).
   Con buscador, filtro por ciudad y orden por nombre/ciudad/empresa. El botón ✓ abre la
   ficha para apuntar día, precio y quién fue.
@@ -157,6 +158,7 @@ Para rehacerlo o ampliarlo a otra provincia, en `herramientas/`:
 ```bash
 node herramientas/catalogo.js barcelona catalogo.json 15
 node herramientas/dedupe.js catalogo.json datos-iniciales.json catalogo-barcelona.json excluir.json
+node herramientas/fotos.js catalogo-barcelona.json
 ```
 
 Luego se importa el resultado desde *Ajustes → Importar copia*. Va a 1 segundo por página
@@ -175,6 +177,38 @@ Esas líneas las escribe ya el propio `dedupe.js` en la lista de dudosas: se cop
 aquí y se vuelve a lanzar. Ojo: si una sala está ya importada en el cuaderno, quitarla del
 catálogo no la borra de allí —hay que darla de baja desde la web.
 
+### Las fotos de las tarjetas
+
+Cada tarjeta lleva a la derecha la foto que escaperoomlover tiene en la ficha de la sala, en
+el campo `photo`. Esa foto no está en el listado de la provincia: hay que entrar sala por
+sala, así que `fotos.js` va a 1 s por ficha (unos 5 minutos para una provincia) y **guarda a
+medida que avanza**: si se corta, se relanza y sigue donde iba. Las salas que ya tienen foto
+no se vuelven a pedir; con `--rehacer` se piden todas otra vez.
+
+La foto se enlaza, no se copia: son unos 30 KB y solo se bajan las tarjetas que se ven. Sin
+cobertura no salen, y la tarjeta se queda sin hueco en lugar de mostrar un roto.
+
+Para ponerles foto a las **ya jugadas** hay más faena: su enlace apunta a la web de la empresa
+y no a escaperoomlover, así que hay que buscarlas por nombre con el catálogo completo delante
+—el de `catalogo.js`, antes del dedupe— y con el `excluir.json`, que es donde ya dijisteis a
+mano qué sala de la web es cuál vuestra. Como la hoja es la fuente de la verdad, se hace sobre
+una copia recién exportada:
+
+```bash
+# Ajustes ▸ Descargar copia  →  cuaderno.json
+node herramientas/fotos.js cuaderno.json catalogo.json excluir.json
+# y se vuelve a importar desde Ajustes ▸ Importar copia
+```
+
+`fotos.js` no toca la marca de tiempo de ninguna sala, así que al importar no pisa nada de lo
+que hayáis apuntado mientras: solo añade la foto. Las que empareja sin tener su enlace las
+lista al final, para poder comprobar de un vistazo que no ha metido la pata.
+
+Se quedan sin foto las salas que apuntasteis con el nombre de la empresa en lugar del de la
+sala (*Oniric Escape*, *The resistance*, *Wizarding Escape Rooms*…) y las que ya no están en
+escaperoomlover. Para esas, se pega el enlace de la imagen a mano en la columna **Foto** de la
+hoja.
+
 ### Editar directamente en la hoja
 
 La pestaña **Salas** es una fila por sala; **Quién fue** son nombres separados por comas, y
@@ -183,6 +217,10 @@ La pestaña **Salas** es una fila por sala; **Quién fue** son nombres separados
 Puedes añadir o corregir filas a mano: la web lo recoge en la siguiente sincronización. Si
 escribes un nombre que no existe, se añade solo a la pestaña *Colegas*. No borres las
 columnas `id` ni `Actualizado`: son las que permiten fusionar los cambios de todos.
+
+**Foto** es la última columna: el enlace de la imagen que sale en la tarjeta. Se puede pegar
+a mano el enlace de cualquier foto (clic derecho ▸ *Copiar dirección de la imagen*). Si tu
+hoja es de antes de esta columna, aparece sola en la siguiente sincronización.
 
 Para dar de baja una sala, pon `sí` en **Borrada** (o bórrala desde la web); la fila se
 queda como marca para que la baja llegue a los demás dispositivos.
@@ -227,7 +265,8 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | `sw.js`, `manifest.webmanifest`, `icons/` | Lo que la convierte en app instalable y sin conexión. |
 | `robots.txt` | Mantiene la web fuera de los buscadores. |
 | `apps-script/Codigo.gs` | El puente con la hoja de cálculo (va pegado en Apps Script). |
-| `herramientas/catalogo.js`, `herramientas/dedupe.js` | Bajan el catálogo de escaperoomlover y le quitan las salas que ya teníais. |
+| `herramientas/catalogo.js`, `herramientas/dedupe.js`, `herramientas/fotos.js` | Bajan el catálogo de escaperoomlover, le quitan las salas que ya teníais y le ponen la foto de cada sala. |
+| `herramientas/cotejo.js`, `herramientas/bajar.js` | Las dos piezas que comparten esas tres: decidir si dos nombres son la misma sala, y bajar una página con buenas maneras. |
 | `catalogo-*.json`, `excluir.json` | El catálogo y sus excepciones. **Fuera del repo**, como el histórico. |
 | `datos-iniciales.json` | El histórico convertido de vuestra hoja. **No se sube al repo**: se importa a mano una vez. |
 
