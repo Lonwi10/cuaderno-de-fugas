@@ -4,36 +4,12 @@
    Uso: node catalogo.js <provincia> <fichero-salida.json> [páginas-max]
    Va despacio a propósito (1 s entre páginas): es una web ajena. */
 const fs = require('fs');
-const https = require('https');
+const { bajar, espera } = require('./bajar');
 
 const PROV = process.argv[2] || 'barcelona';
 const OUT = process.argv[3];
 const MAXP = +(process.argv[4] || 30);
 const BASE = Date.parse('2026-08-27T09:00:00Z');
-
-function bajar(url) {
-  return new Promise((res, rej) => {
-    const req = https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-        'Accept-Language': 'es-ES,es;q=0.9'
-      },
-      timeout: 45000
-    }, r => {
-      if (r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
-        r.resume();
-        return bajar(new URL(r.headers.location, url).href).then(res, rej);
-      }
-      if (r.statusCode !== 200) { r.resume(); return rej(new Error('HTTP ' + r.statusCode)); }
-      let d = '';
-      r.setEncoding('utf8');
-      r.on('data', c => d += c);
-      r.on('end', () => res(d));
-    });
-    req.on('timeout', () => req.destroy(new Error('timeout')));
-    req.on('error', rej);
-  });
-}
 
 /* ---------- utilidades de texto ---------- */
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ', aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú', ntilde: 'ñ', Aacute: 'Á', Eacute: 'É', Iacute: 'Í', Oacute: 'Ó', Uacute: 'Ú', Ntilde: 'Ñ', uuml: 'ü', ordm: 'º', deg: '°', hellip: '…', mdash: '—', ndash: '–', rsquo: '’', laquo: '«', raquo: '»' };
@@ -139,7 +115,7 @@ function aSala(s, i) {
       html = await bajar('https://www.escaperoomlover.com/es/provincia/' + PROV + (p > 1 ? '?page=' + p : ''));
     } catch (e) {
       console.log('página ' + p + ': ' + e.message + ' (se reintenta una vez)');
-      await new Promise(r => setTimeout(r, 4000));
+      await espera(4000);
       try { html = await bajar('https://www.escaperoomlover.com/es/provincia/' + PROV + '?page=' + p); }
       catch (e2) { console.log('página ' + p + ': falla otra vez, se salta'); continue; }
     }
@@ -150,7 +126,7 @@ function aSala(s, i) {
     }));
     console.log('página ' + String(p).padStart(2) + ': ' + String(total).padStart(3) + ' salas leídas, ' + String(nuevas).padStart(3) + ' nuevas (acumulado ' + vistas.size + ')');
     if (total === 0) break;
-    await new Promise(r => setTimeout(r, 1000));
+    await espera(1000);
   }
 
   const salas = [...vistas.values()]
