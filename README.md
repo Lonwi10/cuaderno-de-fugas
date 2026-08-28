@@ -92,8 +92,18 @@ Y ahora, publicarlo:
 
 ### Cambios en el script después de publicar
 
-Si tocas el `Codigo.gs`, haz **Implementar → Gestionar implementaciones → ✏️ → Versión:
-Nueva versión → Implementar**. La URL no cambia.
+Si tocas el `Codigo.gs`: guarda (💾) y haz **Implementar → Gestionar implementaciones → ✏️ (el
+lápiz de la implementación que ya usáis) → Versión: Nueva versión → Implementar**. La URL no
+cambia.
+
+> **Ojo con *Nueva implementación*.** Esa opción crea una implementación distinta **con otra
+> URL**, y la que tiene puesta la app sigue sirviendo el código viejo. Es el fallo más fácil de
+> cometer y no da ningún error: simplemente parece que el cambio no ha hecho nada.
+
+Para comprobar qué está publicado de verdad, abre la URL `/exec` en el navegador: la respuesta
+empieza por `{"ok":true,"version":2,…`. Si no aparece `version`, o el número no es el de
+[`apps-script/Codigo.gs`](apps-script/Codigo.gs), lo publicado es código viejo o esa URL es de
+otra implementación.
 
 ## 4. Instalarla en el móvil (sin APK)
 

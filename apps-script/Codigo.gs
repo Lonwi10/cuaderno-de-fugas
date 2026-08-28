@@ -27,6 +27,13 @@
 /* Id de la hoja (script suelto). Vacío = el script vive dentro de la hoja. */
 var ID_HOJA = '';
 
+/* Número de versión de ESTE fichero. Sale en la respuesta, así que para saber
+   si la implementación publicada es la última basta con abrir la URL /exec en
+   el navegador y mirar el principio del JSON: si no dice "version":2, lo que
+   está publicado es código viejo (o esa URL es de otra implementación).
+   Al tocar el script, sube el número. */
+var VERSION = 2;
+
 var HOJA_SALAS = 'Salas';
 var HOJA_COLEGAS = 'Colegas';
 
@@ -40,7 +47,7 @@ var PAL = ['#C08B2C', '#5E8C6A', '#B0674F', '#5F82A0', '#8E6E9E', '#8A8B4A', '#4
 
 function doGet() {
   try {
-    return json({ ok: true, data: leer() });
+    return json({ ok: true, version: VERSION, data: leer() });
   } catch (err) {
     return json({ ok: false, error: String(err && err.message || err) });
   }
@@ -54,7 +61,7 @@ function doPost(e) {
     lock.waitLock(25000);
     var fusion = fusionar(leer(), entrante);
     escribir(fusion);
-    return json({ ok: true, data: fusion });
+    return json({ ok: true, version: VERSION, data: fusion });
   } catch (err) {
     return json({ ok: false, error: String(err && err.message || err) });
   } finally {
