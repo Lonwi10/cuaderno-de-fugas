@@ -297,10 +297,10 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
 
 /* cabecera de ficha: nº de expediente + sello */
 .card .crown{
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  display:flex; align-items:center; gap:10px;
   padding-bottom:9px; border-bottom:1px solid var(--line-soft);
 }
-.card.wishlist .crown{justify-content:flex-end}
+.card .crown .badge{margin-left:auto}   /* el sello, siempre al margen derecho */
 .card.wishlist .ord{display:none}           /* el sello ya lo dice */
 /* en las no jugadas el pie solo lleva acciones: se alinean con el texto, no
    colgando a la derecha de una banda vacía */

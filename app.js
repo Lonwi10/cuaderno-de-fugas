@@ -128,6 +128,22 @@
     return false;
   }
 
+  /* ---------- aspecto ---------- */
+  /* Dos acabados: papel (expediente) y noche (para jugar a oscuras). Vive en
+     este dispositivo, no en la hoja: cada uno lo quiere a su manera. Se aplica
+     en el <head> antes de pintar, para que no dé el fogonazo. */
+  function temaElegido() {
+    try { return localStorage.getItem('cdf:tema') || 'auto'; } catch (e) { return 'auto'; }
+  }
+  function ponTema(v) {
+    try {
+      if (v === 'auto') localStorage.removeItem('cdf:tema');
+      else localStorage.setItem('cdf:tema', v);
+    } catch (e) {}
+    if (v === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', v);
+  }
+
   /* ---------- instalación en el móvil ---------- */
   var installEvent = null;
   window.addEventListener('beforeinstallprompt', function (e) {
@@ -176,8 +192,14 @@
   }
 
   /* ---------- pintado ---------- */
-  function render() {
+  /* Repintar es rehacer el HTML entero, y eso mueve la página: si estabas a
+     media lista apuntando salas, te deja arriba y hay que volver a bajar. Así
+     que se guarda la altura y se devuelve. Solo al cambiar de pestaña se sube
+     a propósito ({ arriba: true }). */
+  function render(opciones) {
     var app = document.getElementById('app');
+    var altura = opciones && opciones.arriba ? 0 : window.scrollY;
+    function acabar() { paintStatus(); window.scrollTo(0, altura); }
     var players = Store.players();
     var d = done(), w = wish();
     var escaped = d.filter(function (r) { return r.escaped === true; }).length;
@@ -211,7 +233,7 @@
     if (!players.length) {
       if (ui.tab !== 'cfg') {
         app.innerHTML = html + setupPanel();
-        paintStatus();
+        acabar();
         return;
       }
       app.innerHTML = html +
@@ -219,7 +241,7 @@
           '<button class="tab" role="tab" data-act="tab" data-tab="done" aria-selected="false">← Volver</button>' +
           '<button class="tab" role="tab" data-act="tab" data-tab="cfg" aria-selected="true">Ajustes</button>' +
         '</nav>' + cfgView();
-      paintStatus();
+      acabar();
       return;
     }
 
@@ -241,7 +263,7 @@
     if (selC) selC.value = ui.city;
     var selW = document.getElementById('sortwish');
     if (selW) selW.value = ui.sortWish;
-    paintStatus();
+    acabar();
   }
 
   function tile(label, value, unit, accent) {
@@ -346,9 +368,13 @@
       ' onerror="this.hidden=true">' : '';           // sin cobertura, mejor sin hueco
 
     return '<article class="card' + (isWish ? ' wishlist' : '') + '">' +
+      /* nº de expediente y día, juntos arriba: es su sitio, y así el pie no se
+         parte en tres líneas cuando el precio es largo */
       '<div class="crown"><span class="ord">' +
         (isWish ? 'Sin jugar' : (ord ? 'Sala nº ' + String(ord).padStart(2, '0') : 'Sin fecha')) +
-      '</span>' + badge + '</div>' +
+      '</span>' +
+      (r.date && !isWish ? '<span class="when">' + esc(fdate(r.date)) + '</span>' : '') +
+      badge + '</div>' +
       '<div class="body">' +
         '<div class="text">' +
           '<h3>' + esc(r.name || 'Sin nombre') + '</h3>' +
@@ -361,7 +387,6 @@
         (isWish ? '' : (num(r.price)
           ? '<span class="price">' + money(pp) + ' <small>/persona' + (attendees(r) > 1 ? ' · ' + money(gt) + ' la cuadrilla' : '') + '</small></span>'
           : '<span class="price"><small>sin precio</small></span>')) +
-        (r.date && !isWish ? '<span class="when">' + esc(fdate(r.date)) + '</span>' : '') +
         '<span class="spacer"></span>' + who +
         (url ? '<a class="iconlink" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="' + esc(host(url)) + '">' + ICO.link + '</a>' : '') +
         '<div class="acts">' +
@@ -469,6 +494,18 @@
         '<input type="file" id="importfile" accept="application/json,.json" hidden>' +
       '</div></div>';
 
+    var tema = temaElegido();
+    html += '<div class="panel"><h2>Aspecto</h2>' +
+      '<p>El cuaderno tiene dos acabados: <em>papel</em>, como el expediente de toda la vida, y ' +
+      '<em>noche</em>, que se lee mejor a oscuras. De serie hace lo que diga el móvil o el ordenador.</p>' +
+      '<div class="seg">' +
+        [['auto', 'Automático'], ['light', 'Papel'], ['dark', 'Noche']].map(function (o) {
+          return '<button type="button" data-act="tema" data-v="' + o[0] + '" aria-pressed="' + (tema === o[0]) + '">' + o[1] + '</button>';
+        }).join('') +
+      '</div>' +
+      '<p class="hint">Solo cambia en este dispositivo; no se sube a la hoja.</p>' +
+    '</div>';
+
     html += '<div class="panel"><h2>Instalar en el móvil</h2>';
     if (yaInstalada()) {
       html += '<p>Ya está instalada en este dispositivo: lo estás usando como app.</p>';
@@ -507,9 +544,31 @@
     if (!draft) return;
     dlg.querySelectorAll('[name]').forEach(function (i) { draft[i.name] = i.value; });
   }
+  /* Señas para volver a encontrar un control después de repintar la ficha. */
+  function senas(el) {
+    if (!el || !el.getAttribute) return '';
+    var act = el.getAttribute('data-act');
+    if (act) {
+      var v = el.getAttribute('data-v'), id = el.getAttribute('data-id');
+      return '[data-act="' + act + '"]' +
+        (v === null ? '' : '[data-v="' + v + '"]') +
+        (id ? '[data-id="' + id + '"]' : '');
+    }
+    var nm = el.getAttribute('name');
+    return nm ? '[name="' + nm + '"]' : '';
+  }
+
   function renderForm() {
     var r = draft, players = Store.players();
     var isWish = r.status === 'wish';
+
+    /* La ficha se repinta entera en cada toque (estado, precio, resultado…).
+       Si no se guardan estas dos cosas, el cuerpo salta arriba y el foco se
+       pierde, y hay que volver a bajar a mano cada vez. */
+    var cajaPrev = dlg.querySelector('.db');
+    var altura = cajaPrev ? cajaPrev.scrollTop : 0;
+    var volverA = dlg.contains(document.activeElement) ? senas(document.activeElement) : '';
+
     dlg.innerHTML = '<form id="roomform">' +
       '<div class="dh"><h2>' + (tituloForm || (r.id ? 'Editar sala' : (isWish ? 'Sala sin jugar' : 'Nueva sala'))) + '</h2>' +
         '<button type="button" class="btn ghost" data-act="close">Cerrar</button></div>' +
@@ -588,6 +647,14 @@
         b.appendChild(svgs[i]);
       }
     }
+
+    // se deja el cuerpo donde estaba y el foco en el mismo botón
+    var caja = dlg.querySelector('.db');
+    if (caja && altura) caja.scrollTop = altura;
+    if (volverA) {
+      var otra = dlg.querySelector(volverA);
+      if (otra && otra.focus) otra.focus({ preventScroll: true });
+    }
   }
 
   /* ---------- eventos ---------- */
@@ -597,8 +664,9 @@
     var act = t.getAttribute('data-act');
     var id = t.getAttribute('data-id');
 
-    if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); ui.q = ''; ui.city = ''; saveUi(); render(); return; }
+    if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); ui.q = ''; ui.city = ''; saveUi(); render({ arriba: true }); return; }
     if (act === 'who') { ui.who = (ui.who === id) ? '' : id; saveUi(); render(); return; }
+    if (act === 'tema') { ponTema(t.getAttribute('data-v')); render(); return; }
     if (act === 'clearf') { ui.q = ''; ui.who = ''; ui.city = ''; saveUi(); render(); return; }
     if (act === 'new') { openForm(null, ui.tab === 'wish' ? 'wish' : 'done'); return; }
     if (act === 'edit') { var room = Store.room(id); if (room) openForm(room); return; }
@@ -738,10 +806,8 @@
       Store.commit([vuelve]);
       dlg.close();
       draft = null;
-      ui.tab = 'wish';
-      saveUi();
-      render();
-      toast('“' + (vuelve.name || 'Sala') + '” vuelve a no jugadas.');
+      render();                                  // sin cambiar de pestaña: lo dice el aviso
+      toast('“' + (vuelve.name || 'Sala') + '” vuelve a No jugadas.');
       return;
     }
     if (act === 'del') {
@@ -764,11 +830,19 @@
     if (draft.escaped !== true) draft.timeLeft = '';
     draft.rating = num(draft.rating);
     Store.saveRoom(draft);
-    ui.tab = draft.status === 'wish' ? 'wish' : 'done';
-    saveUi();
+    /* No se cambia de pestaña ni se mueve la lista: si estás apuntando varias
+       salas seguidas, lo último que quieres es que te saque de donde estabas.
+       Cuando la sala deja de encajar en la pestaña donde estás, el aviso dice
+       dónde ha quedado, que si no parece que se haya perdido. */
+    var nombre = String(draft.name || 'La sala').trim();
+    var seVa = (ui.tab === 'wish' && draft.status !== 'wish') ||
+               (ui.tab === 'done' && draft.status === 'wish');
+    var donde = draft.status === 'wish' ? 'No jugadas' : 'Jugadas';
     dlg.close();
     draft = null;
     render();
+    toast(seVa ? '“' + nombre + '” guardada: ya está en ' + donde + '.'
+               : '“' + nombre + '” guardada.');
   });
   dlg.addEventListener('close', function () { draft = null; });
 
@@ -816,6 +890,7 @@
   });
 
   function rerenderList() {
+    var altura = window.scrollY;
     var box = document.querySelector('#app .grid') || document.querySelector('#app .empty');
     if (!box) { render(); return; }
     var list = ui.tab === 'wish' ? wish() : done();
@@ -832,6 +907,7 @@
       repl = tmp.firstElementChild;
     }
     box.replaceWith(repl);
+    window.scrollTo(0, altura);            // buscar no debe mover la página
   }
 
   /* ---------- arranque ---------- */

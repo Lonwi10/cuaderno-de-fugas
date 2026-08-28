@@ -9,6 +9,9 @@ datos-iniciales.json
 *.copia.json
 cuaderno-de-fugas*.json
 
+# las vistas de prueba del navegador llevan datos del grupo dentro
+/.*.html
+
 # el catálogo del grupo tampoco se publica
 catalogo*.json
 excluir.json
