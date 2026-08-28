@@ -385,7 +385,7 @@
       '<div class="body">' +
         '<div class="text">' +
           '<h3>' + esc(r.name || 'Sin nombre') + '</h3>' +
-          (meta ? '<p class="meta">' + meta + '</p>' : '') +
+          (meta ? '<p class="meta" title="' + esc([r.company, r.city].filter(Boolean).join(' · ')) + '">' + meta + '</p>' : '') +
           (isWish ? '' : keys(num(r.rating))) +
           (r.notes ? '<p class="notes">' + esc(r.notes) + '</p>' : '') +
         '</div>' + shot +
@@ -394,12 +394,16 @@
         (isWish ? '' : (num(r.price)
           ? '<span class="price">' + money(pp) + ' <small>/persona' + (attendees(r) > 1 ? ' · ' + money(gt) + ' la cuadrilla' : '') + '</small></span>'
           : '<span class="price"><small>sin precio</small></span>')) +
-        '<span class="spacer"></span>' + who +
-        (url ? '<a class="iconlink" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="' + esc(host(url)) + '">' + ICO.link + '</a>' : '') +
-        '<div class="acts">' +
-          (isWish ? '<button class="btn ghost" data-act="didit" data-id="' + r.id + '" title="La hemos jugado">' + ICO.check + '</button>' : '') +
-          '<button class="btn ghost" data-act="edit" data-id="' + r.id + '" title="Editar">' + ICO.edit +
-          (isWish ? '' : '<span class="txt-btn">Editar</span>') + '</button>' +
+        /* El importe arriba, y abajo la cuadrilla con los botones. Cuando iban
+           todos en el mismo renglón, el pie medía entre una y tres líneas según
+           lo largo que fuera el importe, y las fichas salían desiguales. */
+        '<div class="dock">' + who +
+          (url ? '<a class="iconlink" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" title="' + esc(host(url)) + '">' + ICO.link + '</a>' : '') +
+          '<div class="acts">' +
+            (isWish ? '<button class="btn ghost" data-act="didit" data-id="' + r.id + '" title="La hemos jugado">' + ICO.check + '</button>' : '') +
+            '<button class="btn ghost" data-act="edit" data-id="' + r.id + '" title="Editar">' + ICO.edit +
+            (isWish ? '' : '<span class="txt-btn">Editar</span>') + '</button>' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</article>';

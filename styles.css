@@ -274,9 +274,19 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
 .count::after{content:""; flex:1; height:1px; background:var(--line-soft)}
 
 /* ---------- 9. la ficha de cada sala ---------- */
-.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(324px,1fr)); gap:12px; align-items:start}
+/* TODAS las fichas miden lo mismo, no solo las de una misma fila: grid-auto-rows
+   a 1fr iguala las filas entre sí, y el pie se va al fondo con su margin-top
+   auto. Lo que sobra queda como aire antes del pie, con los filetes alineados de
+   una ficha a la siguiente. La altura la marca la ficha más alta, así que vale
+   la pena que el título, la empresa y el pie no se desmadren (de eso se ocupan
+   las reglas de abajo). */
+.grid{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(324px,1fr));
+  grid-auto-rows:1fr; gap:12px;
+}
 .card{
-  position:relative; background:var(--surface); box-shadow:var(--shadow);
+  position:relative; min-width:0;              /* que no imponga su min-content */
+  background:var(--surface); box-shadow:var(--shadow);
   border:1px solid var(--line); border-left:3px solid var(--line);
   padding:13px 15px 11px; display:flex; flex-direction:column; gap:10px;
   transition:border-left-color .16s ease, border-color .16s ease;
@@ -305,7 +315,6 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
 /* en las no jugadas el pie solo lleva acciones: se alinean con el texto, no
    colgando a la derecha de una banda vacía */
 .card.wishlist .foot{padding-top:8px}
-.card.wishlist .foot .spacer{display:none}
 .ord{
   display:inline-flex; align-items:center; gap:8px;
   font-family:var(--dato); font-size:9.5px; font-weight:700;
@@ -329,9 +338,12 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
   font-size:23px; line-height:1.04; text-transform:uppercase; font-weight:600;
   letter-spacing:.005em; overflow-wrap:break-word;
 }
+/* empresa · ciudad en una sola línea: "Santa Coloma de Gramenet" ocupaba dos
+   y descuadraba la altura de la ficha. El nombre entero, en el title. */
 .card .meta{
   font-family:var(--dato); font-size:10.5px; letter-spacing:.05em;
   text-transform:uppercase; color:var(--ink2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 .card .shot{
   width:82px; height:82px; flex:none; object-fit:cover; border-radius:2px;
@@ -365,6 +377,9 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
   border-top:1px solid var(--line-soft); padding-top:10px; margin-top:auto;
 }
 .price{font-family:var(--dato); font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums}
+/* el importe, en un solo renglón (si no cabe, se recorta): con el reparto de la
+   cuadrilla detrás se partía en dos y descuadraba el pie */
+.card .foot .price{flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .price small{font-weight:400; color:var(--ink3); font-size:10px; letter-spacing:.02em}
 .when{
   display:inline-flex; align-items:center; gap:10px;
@@ -372,6 +387,12 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
   text-transform:uppercase; color:var(--ink3);
 }
 .when::before{content:""; width:1px; height:10px; background:var(--line); flex:none}
+/* la cuadrilla y los botones van en su propio renglón, siempre: así el pie
+   mide igual en todas las fichas y los filetes quedan alineados */
+.card .foot .dock{
+  flex:1 0 100%; display:flex; align-items:center; gap:2px; justify-content:flex-end;
+}
+.card .foot .dock .who{margin-right:auto}   /* la cuadrilla, al margen izquierdo */
 .card .acts{display:flex; gap:2px; align-items:center}
 .card .acts .txt-btn{font-size:11px; letter-spacing:.07em}
 
@@ -607,7 +628,9 @@ dialog form{display:flex; flex-direction:column; max-height:calc(100vh - 40px)}
   .toolbar .spacer{display:none}
   .toolbar .btn.primary{order:4; flex:1 1 100%; justify-content:center; padding:11px 14px}
   .count{margin-top:-6px}
-  .grid{grid-template-columns:1fr; gap:10px}
+  /* minmax(0,1fr) y no 1fr: con 1fr el mínimo del track es el min-content de
+     la ficha, y el importe en un solo renglón lo hinchaba hasta desbordar */
+  .grid{grid-template-columns:minmax(0,1fr); gap:10px}
   .card{padding:12px 13px 10px}
   .card h3{font-size:21px}
   .card .shot{width:66px; height:66px}
