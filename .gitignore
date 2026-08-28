@@ -16,3 +16,7 @@ cuaderno-de-fugas*.json
 catalogo*.json
 excluir.json
 .exec-url.txt
+
+# el volcado de TERPECA y sus excepciones: se rehacen con las herramientas
+terpeca*.json
+excluir-terpeca.json

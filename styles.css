@@ -233,6 +233,13 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
 .pill[aria-pressed="true"]{
   background:var(--brass-ghost); border-color:var(--brass-soft); color:var(--ink); font-weight:600;
 }
+/* la píldora sin avatar (TERPECA) no necesita el hueco de la izquierda */
+.pill.solo{padding-left:11px}
+.pill .n{
+  font-family:var(--dato); font-size:10px; font-weight:700; color:var(--ink3);
+  font-variant-numeric:tabular-nums;
+}
+.pill[aria-pressed="true"] .n{color:var(--brass)}
 
 /* ---------- 7. botones: chapa y filete ---------- */
 .btn{
@@ -330,6 +337,14 @@ select.sel:hover{border-color:var(--ink3); color:var(--ink)}
 .badge.lose{background:var(--clay-ghost); color:var(--clay); border-color:var(--clay); border-color:color-mix(in srgb, var(--clay) 45%, transparent)}
 .badge.unk{background:transparent; color:var(--ink2); border-color:var(--line)}
 .badge.wish{background:transparent; color:var(--ink3); border-style:dashed; border-color:var(--line)}
+/* TERPECA: es una condecoración, así que va en latón, el metal de la casa.
+   Nominada sin puesto, la misma chapa pero sin rellenar. Va con el nombre y la
+   empresa, no en la corona: es de la sala, no de vuestra partida. */
+.badge.terp{background:var(--brass-ghost); color:var(--brass); border-color:var(--brass-soft)}
+.badge.terp.nom{background:transparent; color:var(--ink2); border-color:var(--line)}
+.terplink{text-decoration:none; display:inline-flex; align-self:flex-start}
+.terplink:hover .badge.terp{border-color:var(--brass); color:var(--brass-soft)}
+.card .text > .badge.terp{align-self:flex-start}
 
 /* cuerpo: texto a la izquierda, prueba fotográfica a la derecha */
 .card .body{display:flex; align-items:flex-start; gap:12px}
@@ -624,6 +639,7 @@ dialog form{display:flex; flex-direction:column; max-height:calc(100vh - 40px)}
   .toolbar{gap:8px}
   .search{flex:1 1 100%; order:1}
   .who-filter{order:2; flex:1 1 100%}
+  .pill.solo{order:2}                 /* la de TERPECA, con los filtros */
   select.sel{order:3; flex:1 1 46%; min-width:0}
   .toolbar .spacer{display:none}
   .toolbar .btn.primary{order:4; flex:1 1 100%; justify-content:center; padding:11px 14px}

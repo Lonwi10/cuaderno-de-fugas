@@ -29,17 +29,27 @@ var ID_HOJA = '';
 
 /* Número de versión de ESTE fichero. Sale en la respuesta, así que para saber
    si la implementación publicada es la última basta con abrir la URL /exec en
-   el navegador y mirar el principio del JSON: si no dice "version":2, lo que
+   el navegador y mirar el principio del JSON: si no dice "version":3, lo que
    está publicado es código viejo (o esa URL es de otra implementación).
    Al tocar el script, sube el número. */
-var VERSION = 2;
+var VERSION = 3;
 
 var HOJA_SALAS = 'Salas';
 var HOJA_COLEGAS = 'Colegas';
 
+/* Las columnas se leen por el nombre de su cabecera, así que se pueden añadir
+   al final sin descolocar nada: una hoja de una versión anterior las gana solas
+   en la siguiente sincronización. */
 var COLS_SALAS = ['id', 'Sala', 'Empresa', 'Ciudad', 'Web', 'Precio', 'Precio es', 'Nº personas',
                   'Estado', 'Fecha', 'Quién fue', 'Resultado', 'Tiempo restante', 'Nota', 'Notas',
-                  'Actualizado', 'Borrada', 'Foto'];
+                  'Actualizado', 'Borrada', 'Foto',
+                  'TERPECA', 'TERPECA año', 'TERPECA nominaciones'];
+
+/* Campos que una app más antigua que esta hoja no manda. Si no vienen, NO son
+   un borrado: es que ese cuaderno no los conoce todavía y hay que conservar lo
+   que ya hubiera (si no, un móvil sin actualizar borraría las fotos y los
+   puestos de TERPECA de todos los demás). */
+var NUEVOS = ['photo', 'terpecaRank', 'terpecaYear', 'terpecaNoms'];
 var COLS_COLEGAS = ['id', 'Nombre', 'Color', 'Actualizado', 'Borrado'];
 var PAL = ['#C08B2C', '#5E8C6A', '#B0674F', '#5F82A0', '#8E6E9E', '#8A8B4A', '#4E8F8B', '#A85C79'];
 
@@ -84,7 +94,17 @@ function fusionar(a, b) {
     (a[clave] || []).concat(b[clave] || []).forEach(function (it) {
       if (!it || !it.id) return;
       var prev = por[it.id];
-      if (!prev || (+it.updatedAt || 0) >= (+prev.updatedAt || 0)) por[it.id] = it;
+      if (!prev || (+it.updatedAt || 0) >= (+prev.updatedAt || 0)) {
+        if (prev) NUEVOS.forEach(function (campo) {
+          // la que gana no trae el campo pero la otra sí: se conserva
+          if (!(campo in it) && prev[campo]) it[campo] = prev[campo];
+        });
+        por[it.id] = it;
+      } else {
+        NUEVOS.forEach(function (campo) {
+          if (!(campo in prev) && it[campo]) prev[campo] = it[campo];
+        });
+      }
     });
     Object.keys(por).forEach(function (id) { out[clave].push(por[id]); });
   });
@@ -107,6 +127,10 @@ function normalizar(st) {
     if (r.escaped !== true && r.escaped !== false) r.escaped = null;
     r.rating = +r.rating || 0;
     r.people = r.people === '' || r.people == null ? '' : (+r.people || '');
+    /* los de TERPECA, solo si vienen: que falten no es que estén vacíos */
+    ['terpecaRank', 'terpecaYear', 'terpecaNoms'].forEach(function (k) {
+      if (k in r) r[k] = cifra(r[k]);
+    });
   });
   return { players: players, rooms: rooms };
 }
@@ -164,6 +188,14 @@ function aFecha(v) {
   var m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);            // 12/03/2026
   if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
   return s;
+}
+/* Una cifra escrita a mano en la hoja: "#7", "7", " 7 " o vacío. Se coge el
+   primer número que aparezca, no todos los dígitos juntos: "nº 12 (2025)" es
+   12, no 122025. */
+function cifra(v) {
+  if (v === '' || v == null) return '';
+  var m = String(v).match(/\d+/);
+  return m ? +m[0] : '';
 }
 function verdad(v) {
   var s = String(v).trim().toLowerCase();
@@ -223,7 +255,8 @@ function leer() {
     precio: s('Precio'), modo: s('Precio es'), personas: s('Nº personas'), estado: s('Estado'),
     fecha: s('Fecha'), quien: s('Quién fue'), res: s('Resultado'), tiempo: s('Tiempo restante'),
     nota: s('Nota'), notas: s('Notas'), act: s('Actualizado'), baja: s('Borrada'),
-    foto: s('Foto')
+    foto: s('Foto'),
+    terp: s('TERPECA'), terpAno: s('TERPECA año'), terpNoms: s('TERPECA nominaciones')
   };
 
   var rooms = [];
@@ -261,6 +294,9 @@ function leer() {
       rating: +celda(f, S.nota) || 0,
       notes: String(celda(f, S.notas) || '').trim(),
       photo: String(celda(f, S.foto) || '').trim(),
+      terpecaRank: cifra(celda(f, S.terp)),
+      terpecaYear: cifra(celda(f, S.terpAno)),
+      terpecaNoms: cifra(celda(f, S.terpNoms)),
       updatedAt: aMs(celda(f, S.act)) || Date.now(),
       deleted: verdad(celda(f, S.baja)) || undefined
     });
@@ -305,7 +341,10 @@ function escribir(st) {
       r.notes || '',
       new Date(r.updatedAt || Date.now()).toISOString(),
       r.deleted ? 'sí' : '',
-      r.photo || ''
+      r.photo || '',
+      r.terpecaRank || '',
+      r.terpecaYear || '',
+      r.terpecaNoms || ''
     ];
   });
 

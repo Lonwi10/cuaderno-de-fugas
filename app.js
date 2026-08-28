@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  var ui = { tab: 'done', q: '', who: '', sort: 'date', city: '', sortWish: 'name' };
+  var ui = { tab: 'done', q: '', who: '', sort: 'date', city: '', sortWish: 'name', terp: false };
   try {
     var saved = sessionStorage.getItem('cdf:ui');
     if (saved) ui = Object.assign(ui, JSON.parse(saved));
@@ -291,15 +291,18 @@
           '<span class="av mini" style="background:' + esc(p.color) + '">' + esc(initials(p.name)) + '</span>' +
           esc(p.name.split(' ')[0]) + '</button>';
       }).join('') + '</div>';
+      html += pildoraTerpeca(list);
       html += '<select class="sel" id="sort" aria-label="Ordenar">' +
         opt('date', 'Más recientes') + opt('old', 'Más antiguas') + opt('rating', 'Mejor valoradas') +
-        opt('price', 'Más caras') + opt('name', 'Por nombre') + '</select>';
+        opt('terpeca', 'Mejor en TERPECA') + opt('price', 'Más caras') + opt('name', 'Por nombre') + '</select>';
     } else {
       // con cientos de salas por jugar, filtrar por ciudad es lo que salva la lista
       html += '<select class="sel" id="cityf" aria-label="Ciudad">' + opt('', 'Todas las ciudades') +
         ciudades(list).map(function (c) { return opt(c.city, c.city + ' (' + c.n + ')'); }).join('') + '</select>';
+      html += pildoraTerpeca(list);
       html += '<select class="sel" id="sortwish" aria-label="Ordenar">' +
-        opt('name', 'Por nombre') + opt('city', 'Por ciudad') + opt('company', 'Por empresa') + '</select>';
+        opt('terpeca', 'Mejor en TERPECA') + opt('name', 'Por nombre') +
+        opt('city', 'Por ciudad') + opt('company', 'Por empresa') + '</select>';
     }
     html += '<div class="spacer"></div>' +
       '<button class="btn primary" data-act="new">' + ICO.plus + (ui.tab === 'wish' ? 'Añadir sala' : 'Nueva sala') + '</button>' +
@@ -311,6 +314,16 @@
     if (!shown.length) return html + emptyState(list.length, ui.tab);
     var ord = ordinals();
     return html + '<section class="grid">' + shown.map(function (r) { return card(r, ord[r.id], players); }).join('') + '</section>';
+  }
+
+  /* Filtro de "solo las de TERPECA". No se pinta si en esa lista no hay
+     ninguna: un filtro que siempre deja la lista vacía solo estorba. */
+  function pildoraTerpeca(list) {
+    var n = list.filter(enTerpeca).length;
+    if (!n) return '';
+    return '<button class="pill solo" data-act="terp" aria-pressed="' + !!ui.terp + '"' +
+      ' title="Solo las salas que están en el ranking de TERPECA">TERPECA' +
+      '<span class="n mono">' + n + '</span></button>';
   }
 
   /* Ciudades presentes en una lista, ordenadas por nº de salas. */
@@ -331,6 +344,7 @@
       if (q && [r.name, r.company, r.city, r.notes].join(' ').toLowerCase().indexOf(q) === -1) return false;
       if (ui.tab === 'done' && ui.who && (!r.who || r.who.indexOf(ui.who) === -1)) return false;
       if (ui.tab === 'wish' && ui.city && String(r.city || '').trim() !== ui.city) return false;
+      if (ui.terp && !enTerpeca(r)) return false;
       return true;
     });
     out.sort(sorter(ui.tab === 'wish' ? ui.sortWish : ui.sort));
@@ -340,6 +354,17 @@
     var porNombre = function (a, b) { return String(a.name || '').localeCompare(String(b.name || ''), 'es'); };
     return function (a, b) {
       if (mode === 'name') return porNombre(a, b);
+      /* Por TERPECA: primero las que tienen puesto, de mejor a peor; luego las
+         nominadas, por número de nominaciones; y al final las que no salen. */
+      if (mode === 'terpeca') {
+        var ra = num(a.terpecaRank) || 9999, rb = num(b.terpecaRank) || 9999;
+        if (ra !== rb) return ra - rb;
+        var na = num(a.terpecaNoms), nb = num(b.terpecaNoms);
+        if (na !== nb) return nb - na;
+        var ya = num(a.terpecaYear), yb = num(b.terpecaYear);
+        if (ya !== yb) return yb - ya;
+        return porNombre(a, b);
+      }
       if (mode === 'city') return String(a.city || 'zzz').localeCompare(String(b.city || 'zzz'), 'es') || porNombre(a, b);
       if (mode === 'company') return String(a.company || 'zzz').localeCompare(String(b.company || 'zzz'), 'es') || porNombre(a, b);
       if (mode === 'rating') return num(b.rating) - num(a.rating) || String(b.date || '').localeCompare(String(a.date || ''));
@@ -347,6 +372,36 @@
       if (mode === 'old') return String(a.date || '9999').localeCompare(String(b.date || '9999'));
       return String(b.date || '').localeCompare(String(a.date || ''));
     };
+  }
+
+  /* ---------- TERPECA ---------- */
+  /* El puesto en TERPECA (terpeca.com), el ranking mundial que votan cada año
+     los jugadores con 200 salas o más. Del cuaderno solo salen tres cifras:
+     `terpecaRank` (el puesto), `terpecaYear` (el año en que lo hizo) y
+     `terpecaNoms` (cuántos la nominaron ese año). Sin puesto pero con año, la
+     sala fue nominada y no llegó a finalista, que también es una señal.
+     Las pone `herramientas/cruzar-terpeca.js`; a mano se pueden escribir en la
+     hoja, en las columnas TERPECA. */
+  function terpeca(r) {
+    var year = num(r.terpecaYear), rank = num(r.terpecaRank);
+    if (!year && !rank) return null;
+    return { year: year, rank: rank, noms: num(r.terpecaNoms) };
+  }
+  function enTerpeca(r) { return !!terpeca(r); }
+
+  /* La chapa: "TERPECA Nº 7" o "TERPECA nominada", con enlace a la edición de
+     ese año, que es donde se puede comprobar. */
+  function medalla(r) {
+    var t = terpeca(r);
+    if (!t) return '';
+    var rotulo = t.rank ? 'TERPECA nº ' + t.rank : 'TERPECA nominada';
+    var titulo = (t.rank ? 'Puesto ' + t.rank + ' del mundo' : 'Nominada') +
+      (t.year ? ' en TERPECA ' + t.year : ' en TERPECA') +
+      (t.noms ? ' · ' + t.noms + (t.noms === 1 ? ' nominación' : ' nominaciones') : '');
+    var chapa = '<span class="badge terp' + (t.rank ? '' : ' nom') + '">' + esc(rotulo) + '</span>';
+    if (!t.year) return chapa;
+    return '<a class="terplink" href="https://www.terpeca.com/' + t.year + '/" target="_blank"' +
+      ' rel="noopener noreferrer" title="' + esc(titulo) + '">' + chapa + '</a>';
   }
 
   /* El sello del estado, que llevan igual las fichas y el listado de duplicadas. */
@@ -386,6 +441,11 @@
         '<div class="text">' +
           '<h3>' + esc(r.name || 'Sin nombre') + '</h3>' +
           (meta ? '<p class="meta" title="' + esc([r.company, r.city].filter(Boolean).join(' · ')) + '">' + meta + '</p>' : '') +
+          /* La chapa de TERPECA va aquí, con el nombre y la empresa, porque es
+             de la sala y no de vuestra partida —y porque en la corona, junto al
+             nº de expediente y la fecha, no cabe sin partirla en dos líneas y
+             descuadrar la altura de los titulares. */
+          medalla(r) +
           (isWish ? '' : keys(num(r.rating))) +
           (r.notes ? '<p class="notes">' + esc(r.notes) + '</p>' : '') +
         '</div>' + shot +
@@ -553,12 +613,15 @@
       html += '<p>Este dispositivo está conectado. Todo lo que apuntéis se guarda en tu hoja de Google y los demás lo ven al abrir la web.</p>' +
         '<p class="urlbox mono">' + esc(cfg.url) + '</p>' +
         /* Qué Apps Script hay publicado en esa URL. Publicar una versión
-           antigua no da ningún error: solo deja de llegar lo nuevo (las fotos),
-           y eso es imposible de adivinar desde aquí si no se dice. */
+           antigua no da ningún error: solo deja de llegar lo nuevo (las fotos,
+           los puestos de TERPECA), y eso es imposible de adivinar desde aquí si
+           no se dice. Store dice en `faltan` qué columnas no vienen. */
         (s.esquemaViejo
-          ? '<p class="aviso">El Apps Script publicado en esa URL es <b>anterior a la columna Foto</b>' +
+          ? '<p class="aviso">El Apps Script publicado en esa URL es <b>anterior a la columna ' +
+            esc((s.faltan || []).map(function (c) { return c.col; }).join(' y a la columna ')) + '</b>' +
             (s.scriptVersion ? ' (dice ser la versión ' + esc(s.scriptVersion) + ')' : ' (no dice su versión)') +
-            '. Las fotos se ven en este dispositivo, pero no se guardan en la hoja ni llegan a los demás. ' +
+            '. En este dispositivo se ve ' + esc((s.faltan || []).map(function (c) { return c.pierde; }).join(' y ')) +
+            ', pero no se guarda en la hoja ni llega a los demás. ' +
             'Vuelve a pegar <span class="mono">apps-script/Codigo.gs</span>, guarda, y en <em>Implementar ▸ ' +
             'Gestionar implementaciones</em> edita con el lápiz <b>la implementación cuyo id acabe igual que ' +
             'la URL de arriba</b> y elige <em>Versión: Nueva versión</em>. Crear una implementación nueva no ' +
@@ -759,6 +822,7 @@
 
     if (act === 'tab') { ui.tab = t.getAttribute('data-tab'); ui.q = ''; ui.city = ''; saveUi(); render({ arriba: true }); return; }
     if (act === 'who') { ui.who = (ui.who === id) ? '' : id; saveUi(); render(); return; }
+    if (act === 'terp') { ui.terp = !ui.terp; saveUi(); render(); return; }
     if (act === 'tema') { ponTema(t.getAttribute('data-v')); render(); return; }
     if (act === 'dupdel') {
       var rep = Store.room(id);
@@ -769,7 +833,7 @@
       toast('“' + (rep.name || 'Sala') + '” quitada del cuaderno.');
       return;
     }
-    if (act === 'clearf') { ui.q = ''; ui.who = ''; ui.city = ''; saveUi(); render(); return; }
+    if (act === 'clearf') { ui.q = ''; ui.who = ''; ui.city = ''; ui.terp = false; saveUi(); render(); return; }
     if (act === 'new') { openForm(null, ui.tab === 'wish' ? 'wish' : 'done'); return; }
     if (act === 'edit') { var room = Store.room(id); if (room) openForm(room); return; }
     if (act === 'close') { dlg.close(); return; }

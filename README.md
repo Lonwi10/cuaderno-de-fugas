@@ -2,7 +2,8 @@
 
 Registro de los escape rooms del grupo: las **jugadas** (con día, precio, quién fue, si
 escapamos y nota) y las **no jugadas**, que se pueden cargar de golpe con el catálogo de
-una provincia entera. Además saca las cuentas: gasto de cada uno, porcentaje de fugas y nota media.
+una provincia entera. Además saca las cuentas: gasto de cada uno, porcentaje de fugas y nota media,
+y dice en qué puesto del ranking mundial de **TERPECA** está cada sala.
 
 Es una web estática (sin servidor, sin npm, sin build) pensada para **GitHub Pages**, y los
 datos viven en **una hoja de cálculo de Google Drive**, así que los cuatro veis y editáis la
@@ -101,12 +102,13 @@ cambia.
 > cometer y no da ningún error: simplemente parece que el cambio no ha hecho nada.
 
 Para comprobar qué está publicado de verdad no hace falta salir de la app: en **Ajustes**, bajo
-la URL de la hoja, se dice qué versión del script hay al otro lado, y si es anterior a la
-columna **Foto** sale un aviso con lo que falta por hacer. Ahí mismo está la URL que usa ese
-dispositivo: su id tiene que ser el de la implementación que edites.
+la URL de la hoja, se dice qué versión del script hay al otro lado, y si le faltan columnas
+(**Foto**, **TERPECA**) sale un aviso con lo que falta por hacer y con lo que se está
+perdiendo. Ahí mismo está la URL que usa ese dispositivo: su id tiene que ser el de la
+implementación que edites.
 
 (A mano también vale: abre la URL `/exec` en el navegador y la respuesta empieza por
-`{"ok":true,"version":2,…`.)
+`{"ok":true,"version":3,…`.)
 
 ## 4. Instalarla en el móvil (sin APK)
 
@@ -120,10 +122,15 @@ guardan en el móvil y se suben a la hoja en cuanto vuelve la conexión.
 
 - **Jugadas**: cada sala con su ordinal por fecha, insignia de resultado, nota, precio por
   persona, fecha, quién fue, enlace a la web y, a la derecha, la foto de la sala. Se puede
-  buscar, filtrar por colega y ordenar.
+  buscar, filtrar por colega y ordenar (también **por puesto de TERPECA**).
 - **No jugadas**: todo lo que queda por jugar (el catálogo de la provincia y las vuestras).
-  Con buscador, filtro por ciudad y orden por nombre/ciudad/empresa. El botón ✓ abre la
-  ficha para apuntar día, precio y quién fue.
+  Con buscador, filtro por ciudad y orden por TERPECA/nombre/ciudad/empresa. El botón ✓ abre
+  la ficha para apuntar día, precio y quién fue.
+- Las salas que están en el **ranking mundial de TERPECA** llevan una chapa de latón con su
+  puesto —*TERPECA nº 7*— debajo de la empresa y la ciudad, y la chapa enlaza a la edición de
+  ese año en terpeca.com. Las que fueron nominadas pero no llegaron a finalistas la llevan sin
+  rellenar (*TERPECA nominada*). En las dos pestañas hay una píldora **TERPECA** que deja solo
+  esas, con la cuenta al lado. Cómo llegan esos puestos al cuaderno: más abajo.
 - **La cuadrilla**: nombres editables y, por cada uno, salas, % de fugas y gasto acumulado.
 - **Duplicadas**: cruza todas las salas del cuaderno entre sí y saca las parejas que podrían
   ser la misma sala apuntada dos veces, cara a cara y con sus datos, para decidir a ojo. Las
@@ -202,6 +209,100 @@ Esas líneas las escribe ya el propio `dedupe.js` en la lista de dudosas: se cop
 aquí y se vuelve a lanzar. Ojo: si una sala está ya importada en el cuaderno, quitarla del
 catálogo no la borra de allí —hay que darla de baja desde la web.
 
+### El puesto de TERPECA
+
+[TERPECA](https://www.terpeca.com) es el ranking mundial de escape rooms: cada año, la gente
+con 200 salas o más a sus espaldas nomina sus favoritas (fase 1) y luego vota entre las
+finalistas (fase 2), y de ahí sale un top del mundo. En el cuaderno interesa por dos cosas:
+saber **en qué puesto están las salas que ya tenéis** y **qué salas buenas os faltan**.
+
+Son dos pasos, como el catálogo: uno baja los datos y el otro decide.
+
+```bash
+# 1. bajar las ocho ediciones publicadas (2018–2025). Tarda ~15 s
+node herramientas/terpeca.js todos terpeca.json
+
+# 2. en la web, Ajustes ▸ Descargar copia   →  cuaderno.json
+#    y cruzarlo:
+node herramientas/cruzar-terpeca.js cuaderno.json terpeca.json terpeca-para-importar.json excluir-terpeca.json
+
+# 3. en la web, Ajustes ▸ Importar copia    →  terpeca-para-importar.json
+```
+
+El fichero que sale hace dos cosas a la vez:
+
+1. **Les pone el puesto a las salas que ya tenéis**, jugadas y sin jugar, sin tocarles nada
+   más: ni el nombre, ni la empresa, ni la web, ni la foto, ni las notas, ni el precio, ni la
+   fecha, ni quién fue, ni la nota, ni la marca de tiempo. Solo las tres columnas de TERPECA.
+   Como cada sala sale con la misma marca de tiempo que traía, al importar no pisa nada de lo
+   que hayáis apuntado mientras (igual que `pegar-fotos.js`).
+2. **Añade como *sin jugar* las de TERPECA que no tenéis.** De serie, solo las de **España**:
+   las que tienen puesto siempre, y las que solo fueron nominadas desde **2 nominaciones**
+   —con una sola, la señal es demasiado floja para meter cientos de salas en el cuaderno—.
+
+Se cambia con opciones, y ninguna afecta al punto 1 (los puestos se ponen siempre a todas):
+
+| Opción | Para qué |
+|---|---|
+| `--pais=España,Andorra,Francia` | de dónde se importan las que faltan; `--pais=todos` para el mundo entero |
+| `--ciudad=barcelona,badalona,terrassa` | además, solo esas ciudades |
+| `--min=1` | bajar (o subir) el mínimo de nominaciones |
+| `--desde=2023` | solo salas que salgan en esa edición o después, para no traerse salas de 2018 que ya cerraron |
+| `--sin-nuevas` | no añadir ninguna sala: solo poner los puestos |
+
+Del cuaderno solo salen tres cifras por sala, y se pueden escribir a mano en la hoja:
+**TERPECA** (el puesto), **TERPECA año** (el año en que lo hizo) y **TERPECA nominaciones**.
+Si una sala tiene año pero no puesto, fue nominada y no llegó a finalista.
+
+Cuando una sala ha estado en varias ediciones se guarda **el puesto más reciente que
+consiguió**, con su año; las nominaciones son las de ese mismo año, así que el par
+puesto–año se lee sin trampa. El historial completo (`2025 #7 · 2024 #12 · 2023 nom. (8)`)
+sale en el listado de la herramienta, que es donde se repasa.
+
+#### Lo que hay que mirar a ojo
+
+TERPECA escribe los nombres **en inglés, con el original entre corchetes** —`The Krugger's
+Secret [El Secreto de los Krugger]`—, así que cada sala se coteja con sus dos nombres, y con
+el mismo [`cotejo.js`](cotejo.js) que usan el catálogo y la pestaña de duplicadas. La ciudad
+**no** se compara: TERPECA dice la ciudad grande ("Barcelona") donde el catálogo dice el
+municipio ("Cornellá de Llobregat"), y compararlas daría por distintas salas que son la misma.
+El aval es la empresa.
+
+Cuando el nombre canta pero la empresa no cuadra del todo —vuestra *Insomnia Corp* contra su
+*Insomnia Corporation*— la herramienta no decide sola: lo lista en **¿son la misma sala?** con
+la línea ya escrita para pegarla en `excluir-terpeca.json`:
+
+```json
+{
+  "the-krugger-s-secret-insomnia-corporation": "la apuntasteis como \"El secreto de los Krugger\"",
+  "una-sala-cualquiera-de-fulanito": "no nos interesa"
+}
+```
+
+Con nombre entre comillas, se empareja con esa sala vuestra. Sin comillas, simplemente no se
+importa. Ese fichero es la última palabra, y va **fuera del repo** como `excluir.json`.
+
+Las salas nuevas entran con el nombre en español cuando TERPECA da los dos, y el otro queda en
+las notas junto a las nominaciones, los jugadores, la duración, el nivel de terror y los
+idiomas. Las **premiadas (top 100)** traen además el enlace de la empresa y la foto que TERPECA
+tiene de la sala; las demás entran sin foto, porque la foto de una sala solo sale de su propia
+ficha y nunca de una que se parezca (ver más abajo). Si las queréis con foto, se dicen a mano
+en `excluir.json` y se lanza `fotos.js`.
+
+> **Antes de importar, republica el Apps Script.** La hoja es la fuente de la verdad: si el
+> script publicado es anterior a las columnas TERPECA, al sincronizar se come los puestos
+> aunque los acabes de importar. Se republica en *Implementar ▸ Gestionar implementaciones ▸
+> ✏️ ▸ Versión: Nueva versión*; la URL no cambia. En **Ajustes** se ve si hace falta.
+
+Después de importar, **pásate por la pestaña Duplicadas**. Casi todo lo que había que juntar ya
+viene junto, pero TERPECA tiene salas que se votan por versiones —*Petra, expedición inicial de
+90 min* y *expedición completa de 120 min*— y ahí no hay quien decida por vosotros si son una o
+dos: eso se mira a ojo, como siempre.
+
+Y una vez al año, cuando TERPECA publica la edición nueva, se repite la vuelta: los dos
+comandos y a importar. `terpeca.js` lee de la propia portada qué ediciones hay, así que no hay
+que tocar nada.
+
 ### Las fotos de las tarjetas
 
 Cada tarjeta lleva a la derecha la foto que escaperoomlover tiene en la ficha de la sala, en
@@ -264,9 +365,14 @@ Puedes añadir o corregir filas a mano: la web lo recoge en la siguiente sincron
 escribes un nombre que no existe, se añade solo a la pestaña *Colegas*. No borres las
 columnas `id` ni `Actualizado`: son las que permiten fusionar los cambios de todos.
 
-**Foto** es la última columna: el enlace de la imagen que sale en la tarjeta. Se puede pegar
-a mano el enlace de cualquier foto (clic derecho ▸ *Copiar dirección de la imagen*). Si tu
-hoja es de antes de esta columna, aparece sola en la siguiente sincronización.
+**Foto** es el enlace de la imagen que sale en la tarjeta. Se puede pegar a mano el enlace de
+cualquier foto (clic derecho ▸ *Copiar dirección de la imagen*).
+
+Las tres últimas son las de TERPECA: **TERPECA** (el puesto, `7` o `#7`), **TERPECA año** y
+**TERPECA nominaciones**. Se pueden escribir a mano; con año y sin puesto, la sala sale como
+*nominada*. Las rellena `cruzar-terpeca.js`, y si tu hoja es de antes de estas columnas
+aparecen solas en la siguiente sincronización (las columnas se leen por el nombre de su
+cabecera, así que da igual en qué orden estén).
 
 Para dar de baja una sala, pon `sí` en **Borrada** (o bórrala desde la web); la fila se
 queda como marca para que la baja llegue a los demás dispositivos.
@@ -280,7 +386,12 @@ se conservan las dos.
 Con una excepción: si la versión que llega **no trae un campo** (porque el Apps Script
 publicado es de un esquema anterior y no lo conoce), no se toma como "vacío" y se conserva lo
 que hubiera. Sin eso, sincronizar con una hoja sin la columna **Foto** borraría todas las
-fotos del cuaderno. Un campo que llega vacío sí manda: eso es un borrado de verdad.
+fotos del cuaderno, y una sin las columnas **TERPECA** se comería los puestos. Un campo que
+llega vacío sí manda: eso es un borrado de verdad.
+
+La misma cautela va en las dos direcciones: el Apps Script conserva los campos que no le
+manda la app, así que un móvil con la web sin actualizar tampoco puede borrarle a la hoja las
+fotos ni los puestos de los demás.
 
 ---
 
@@ -319,8 +430,10 @@ propio). Para una lista de escape rooms probablemente no merezca la pena.
 | `apps-script/Codigo.gs` | El puente con la hoja de cálculo (va pegado en Apps Script). |
 | `herramientas/catalogo.js`, `herramientas/dedupe.js`, `herramientas/fotos.js` | Bajan el catálogo de escaperoomlover con la foto de cada sala, le quitan las que ya teníais y ponen las fotos que falten. |
 | `herramientas/pegar-fotos.js` | Pega en el cuaderno fotos ya bajadas, emparejando **solo por id**, sin pedir nada a internet ni tocar ningún otro dato. |
-| `herramientas/cotejo.js`, `herramientas/bajar.js` | Las dos piezas que comparten esas tres: decidir si dos nombres son la misma sala, y bajar una página con buenas maneras. |
-| `catalogo-*.json`, `excluir.json` | El catálogo y sus excepciones. **Fuera del repo**, como el histórico. |
+| `herramientas/terpeca.js` | Baja las ediciones de TERPECA (nominadas, finalistas con su puesto y premiadas con foto) y las deja en un JSON. Solo baja y trocea. |
+| `herramientas/cruzar-terpeca.js` | Cruza TERPECA con el cuaderno: pone el puesto a las salas que ya tenéis y añade las que faltan. Es quien decide. |
+| `herramientas/bajar.js` | La pieza que comparten todas las que van a internet: bajar una página con buenas maneras. |
+| `catalogo-*.json`, `terpeca*.json`, `excluir.json`, `excluir-terpeca.json` | El catálogo, el volcado de TERPECA y sus excepciones. **Fuera del repo**, como el histórico. |
 | `datos-iniciales.json` | El histórico convertido de vuestra hoja. **No se sube al repo**: se importa a mano una vez. |
 
 ## Probarla en local

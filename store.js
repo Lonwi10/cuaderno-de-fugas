@@ -50,15 +50,32 @@
       r.rating = +r.rating || 0;
       // personas que pagaron, incluidas las de fuera de la cuadrilla
       r.people = r.people == null || r.people === '' ? '' : (+r.people || '');
+      /* Los campos de TERPECA se ordenan y se sortean, así que tienen que ser
+         números; pero SOLO se tocan si vienen. Que no vengan significa "esta
+         hoja no sabe de TERPECA", no "no tiene puesto": ver NUEVOS. */
+      CIFRAS_TERPECA.forEach(function (k) {
+        if (!(k in r)) return;
+        // "#7" escrito a mano en la hoja vale; se coge el primer número
+        var m = r[k] == null ? null : String(r[k]).match(/\d+/);
+        r[k] = m ? +m[0] : '';
+      });
     });
     return st;
   }
+  var CIFRAS_TERPECA = ['terpecaRank', 'terpecaYear', 'terpecaNoms'];
 
   /* Campos que una versión antigua de la hoja no conoce y por tanto no manda.
      Que no los mande NO significa que estén vacíos: significa que su esquema es
      más viejo. Si se tomara como "vacío", una sincronización con un Apps Script
      sin la columna Foto borraría todas las fotos del cuaderno. */
-  var NUEVOS = ['photo'];
+  var NUEVOS = ['photo'].concat(CIFRAS_TERPECA);
+
+  /* Y estas son las columnas que la hoja debería traer, para poder avisar en
+     Ajustes de qué le falta al Apps Script publicado. Una por campo delator. */
+  var COLUMNAS = [
+    { campo: 'photo', col: 'Foto', pierde: 'las fotos de las tarjetas' },
+    { campo: 'terpecaRank', col: 'TERPECA', pierde: 'el puesto de TERPECA' }
+  ];
 
   /** Une dos versiones quedándose con la entrada más reciente de cada id. */
   function merge(a, b) {
@@ -109,7 +126,7 @@
      nota en que algo (las fotos) no llega a los demás. */
   var status = {
     state: cfg.url ? 'idle' : 'local', dirty: false, lastSync: cfg.lastSync || 0, msg: '',
-    scriptVersion: null, esquemaViejo: false
+    scriptVersion: null, esquemaViejo: false, faltan: []
   };
   var pushTimer = null, pulling = false, pushing = false;
 
@@ -146,9 +163,12 @@
         if (!json || json.ok !== true) throw { code: 'error-script', msg: (json && json.error) || 'respuesta inesperada' };
         status.scriptVersion = json.version === undefined ? 0 : +json.version;
         var salas = (json.data && json.data.rooms) || [];
-        /* si trae salas y ninguna menciona photo, el script publicado es de
-           antes de la columna Foto: las fotos no se comparten con los demás */
-        status.esquemaViejo = salas.length > 0 && !salas.some(function (r) { return r && 'photo' in r; });
+        /* si trae salas y ninguna menciona un campo nuevo, el script publicado
+           es de antes de esa columna: ese dato no se comparte con los demás */
+        status.faltan = salas.length === 0 ? [] : COLUMNAS.filter(function (c) {
+          return !salas.some(function (r) { return r && c.campo in r; });
+        });
+        status.esquemaViejo = status.faltan.length > 0;
         return normalize(json.data || blank());
       });
   }
