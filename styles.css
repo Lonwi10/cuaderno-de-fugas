@@ -682,6 +682,15 @@ dialog form{display:flex; flex-direction:column; max-height:calc(100vh - 40px)}
   #toast div{max-width:none; width:100%}
 }
 
+/* ---------- 17 bis. pantallas táctiles: sin zoom al escribir ---------- */
+/* Safari en iPhone/iPad se acerca solo al tocar un campo con letra de menos de
+   16 px, y no vuelve: la página queda más ancha que la pantalla y hay que ir
+   arrastrando de lado. A 16 px no hace zoom. (No se usa maximum-scale en el
+   viewport porque en Android impediría ampliar con los dedos.) */
+@media (pointer:coarse){
+  input.txt, textarea.txt, select.txt, select.sel, .search input{font-size:16px}
+}
+
 /* ---------- 18. pantallas anchas: el archivo respira ---------- */
 @media (min-width:1200px){
   .grid{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
